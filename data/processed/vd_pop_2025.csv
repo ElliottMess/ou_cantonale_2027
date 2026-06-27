@@ -1,0 +1,301 @@
+district,sous_district,commune,num_ofs,population
+Aigle,NA,Aigle,5401,12081
+Aigle,NA,Bex,5402,8923
+Aigle,NA,Chessel,5403,525
+Aigle,NA,Corbeyrier,5404,456
+Aigle,NA,Gryon,5405,1546
+Aigle,NA,Lavey-Morcles,5406,1024
+Aigle,NA,Leysin,5407,3722
+Aigle,NA,Noville,5408,1214
+Aigle,NA,Ollon,5409,8302
+Aigle,NA,Ormont-Dessous,5410,1261
+Aigle,NA,Ormont-Dessus,5411,1440
+Aigle,NA,Rennaz,5412,935
+Aigle,NA,Roche,5413,2035
+Aigle,NA,Villeneuve,5414,6073
+Aigle,NA,Yvorne,5415,1119
+Broye-Vully,NA,Avenches,5451,4953
+Broye-Vully,NA,Bussy-sur-Moudon,5663,267
+Broye-Vully,NA,Champtauroz,5812,184
+Broye-Vully,NA,Chavannes-sur-Moudon,5665,232
+Broye-Vully,NA,Chevroux,5813,487
+Broye-Vully,NA,Corcelles-le-Jorat,5785,495
+Broye-Vully,NA,Corcelles-près-Payerne,5816,3129
+Broye-Vully,NA,Cudrefin,5456,1915
+Broye-Vully,NA,Curtilles,5669,302
+Broye-Vully,NA,Dompierre,5671,242
+Broye-Vully,NA,Faoug,5458,902
+Broye-Vully,NA,Grandcour,5817,970
+Broye-Vully,NA,Henniez,5819,464
+Broye-Vully,NA,Hermenches,5673,364
+Broye-Vully,NA,Lovatens,5674,152
+Broye-Vully,NA,Lucens,5675,4892
+Broye-Vully,NA,Missy,5821,379
+Broye-Vully,NA,Moudon,5678,6847
+Broye-Vully,NA,Payerne,5822,10972
+Broye-Vully,NA,Prévonloup,5683,249
+Broye-Vully,NA,Ropraz,5798,535
+Broye-Vully,NA,Rossenges,5684,82
+Broye-Vully,NA,Syens,5688,144
+Broye-Vully,NA,Trey,5827,305
+Broye-Vully,NA,Treytorrens,5828,108
+Broye-Vully,NA,Valbroye,5831,3416
+Broye-Vully,NA,Villars-le-Comte,5690,129
+Broye-Vully,NA,Villarzel,5830,522
+Broye-Vully,NA,Vucherens,5692,634
+Broye-Vully,NA,Vulliens,5803,630
+Broye-Vully,NA,Vully-les-Lacs,5464,3698
+Gros-de-Vaud,NA,Assens,5511,1747
+Gros-de-Vaud,NA,Bercher,5512,1359
+Gros-de-Vaud,NA,Bettens,5471,652
+Gros-de-Vaud,NA,Bottens,5514,1389
+Gros-de-Vaud,NA,Boulens,5661,371
+Gros-de-Vaud,NA,Bournens,5472,612
+Gros-de-Vaud,NA,Boussens,5473,1016
+Gros-de-Vaud,NA,Bretigny-sur-Morrens,5515,893
+Gros-de-Vaud,NA,Cugy,5516,2824
+Gros-de-Vaud,NA,Daillens,5480,1113
+Gros-de-Vaud,NA,Echallens,5518,6816
+Gros-de-Vaud,NA,Essertines-sur-Yverdon,5520,1183
+Gros-de-Vaud,NA,Etagnières,5521,1168
+Gros-de-Vaud,NA,Fey,5522,791
+Gros-de-Vaud,NA,Froideville,5523,2713
+Gros-de-Vaud,NA,Goumoëns,5541,1251
+Gros-de-Vaud,NA,Jorat-Menthue,5804,1564
+Gros-de-Vaud,NA,Lussery-Villars,5487,469
+Gros-de-Vaud,NA,Mex,5489,828
+Gros-de-Vaud,NA,Montanaire,5693,2856
+Gros-de-Vaud,NA,Montilliez,5540,1856
+Gros-de-Vaud,NA,Morrens,5527,1145
+Gros-de-Vaud,NA,Ogens,5680,342
+Gros-de-Vaud,NA,Oppens,5923,201
+Gros-de-Vaud,NA,Oulens-sous-Echallens,5529,609
+Gros-de-Vaud,NA,Pailly,5530,575
+Gros-de-Vaud,NA,Penthalaz,5495,3199
+Gros-de-Vaud,NA,Penthaz,5496,1910
+Gros-de-Vaud,NA,Penthéréaz,5531,446
+Gros-de-Vaud,NA,Poliez-Pittet,5533,847
+Gros-de-Vaud,NA,Rueyres,5534,302
+Gros-de-Vaud,NA,Saint-Barthélemy,5535,838
+Gros-de-Vaud,NA,Sullens,5501,1282
+Gros-de-Vaud,NA,Villars-le-Terroir,5537,1334
+Gros-de-Vaud,NA,Vuarrens,5539,1113
+Gros-de-Vaud,NA,Vufflens-la-Ville,5503,1327
+Jura-Nord vaudois,La Vallée,L'Abbaye,5871,1599
+Jura-Nord vaudois,Yverdon,L'Abergement,5741,267
+Jura-Nord vaudois,Yverdon,Agiez,5742,382
+Jura-Nord vaudois,Yverdon,Arnex-sur-Orbe,5743,698
+Jura-Nord vaudois,Yverdon,Ballaigues,5744,1217
+Jura-Nord vaudois,Yverdon,Baulmes,5745,1189
+Jura-Nord vaudois,Yverdon,Bavois,5746,1055
+Jura-Nord vaudois,Yverdon,Belmont-sur-Yverdon,5902,457
+Jura-Nord vaudois,Yverdon,Bioley-Magnoux,5903,252
+Jura-Nord vaudois,Yverdon,Bofflens,5747,201
+Jura-Nord vaudois,Yverdon,Bonvillars,5551,517
+Jura-Nord vaudois,Yverdon,Bretonnières,5748,265
+Jura-Nord vaudois,Yverdon,Bullet,5552,687
+Jura-Nord vaudois,Yverdon,Chamblon,5904,558
+Jura-Nord vaudois,Yverdon,Champagne,5553,1087
+Jura-Nord vaudois,Yverdon,Champvent,5905,692
+Jura-Nord vaudois,Yverdon,Chavannes-le-Chêne,5907,329
+Jura-Nord vaudois,Yverdon,Chavornay,5749,5374
+Jura-Nord vaudois,Yverdon,Chêne-Pâquier,5908,172
+Jura-Nord vaudois,La Vallée,Le Chenit,5872,4792
+Jura-Nord vaudois,Yverdon,Cheseaux-Noréaz,5909,745
+Jura-Nord vaudois,Yverdon,Les Clées,5750,195
+Jura-Nord vaudois,Yverdon,Concise,5554,1035
+Jura-Nord vaudois,Yverdon,Corcelles-près-Concise,5555,439
+Jura-Nord vaudois,Yverdon,Cronay,5910,432
+Jura-Nord vaudois,Yverdon,Croy,5752,408
+Jura-Nord vaudois,Yverdon,Cuarny,5911,244
+Jura-Nord vaudois,Yverdon,Démoret,5912,181
+Jura-Nord vaudois,Yverdon,Donneloye,5913,905
+Jura-Nord vaudois,Yverdon,Ependes,5914,376
+Jura-Nord vaudois,Yverdon,Fiez,5556,421
+Jura-Nord vaudois,Yverdon,Fontaines-sur-Grandson,5557,228
+Jura-Nord vaudois,Yverdon,Giez,5559,464
+Jura-Nord vaudois,Yverdon,Grandevent,5560,241
+Jura-Nord vaudois,Yverdon,Grandson,5561,3391
+Jura-Nord vaudois,Yverdon,Juriens,5754,345
+Jura-Nord vaudois,La Vallée,Le Lieu,5873,926
+Jura-Nord vaudois,Yverdon,Lignerolle,5755,452
+Jura-Nord vaudois,Yverdon,Mathod,5919,740
+Jura-Nord vaudois,Yverdon,Mauborget,5562,137
+Jura-Nord vaudois,Yverdon,Molondin,5921,260
+Jura-Nord vaudois,Yverdon,Montagny-près-Yverdon,5922,768
+Jura-Nord vaudois,Yverdon,Montcherand,5756,494
+Jura-Nord vaudois,Yverdon,Mutrux,5563,138
+Jura-Nord vaudois,Yverdon,Novalles,5564,105
+Jura-Nord vaudois,Yverdon,Onnens,5565,527
+Jura-Nord vaudois,Yverdon,Orbe,5757,8008
+Jura-Nord vaudois,Yverdon,Orges,5924,416
+Jura-Nord vaudois,Yverdon,Orzens,5925,216
+Jura-Nord vaudois,Yverdon,Pomy,5926,904
+Jura-Nord vaudois,Yverdon,La Praz,5758,214
+Jura-Nord vaudois,Yverdon,Premier,5759,233
+Jura-Nord vaudois,Yverdon,Provence,5566,421
+Jura-Nord vaudois,Yverdon,Rances,5760,513
+Jura-Nord vaudois,Yverdon,Romainmôtier-Envy,5761,579
+Jura-Nord vaudois,Yverdon,Rovray,5928,198
+Jura-Nord vaudois,Yverdon,Sainte-Croix,5568,5149
+Jura-Nord vaudois,Yverdon,Sergey,5762,165
+Jura-Nord vaudois,Yverdon,Suchy,5929,672
+Jura-Nord vaudois,Yverdon,Suscévaz,5930,263
+Jura-Nord vaudois,Yverdon,Tévenon,5571,857
+Jura-Nord vaudois,Yverdon,Treycovagnes,5931,518
+Jura-Nord vaudois,Yverdon,Ursins,5932,227
+Jura-Nord vaudois,Yverdon,Valeyres-sous-Montagny,5933,717
+Jura-Nord vaudois,Yverdon,Valeyres-sous-Rances,5763,573
+Jura-Nord vaudois,Yverdon,Valeyres-sous-Ursins,5934,225
+Jura-Nord vaudois,Yverdon,Vallorbe,5764,4434
+Jura-Nord vaudois,Yverdon,Vaulion,5765,500
+Jura-Nord vaudois,Yverdon,Villars-Epeney,5935,109
+Jura-Nord vaudois,Yverdon,Vugelles-La Mothe,5937,142
+Jura-Nord vaudois,Yverdon,Vuiteboeuf,5766,616
+Jura-Nord vaudois,Yverdon,Yverdon-les-Bains,5938,30600
+Jura-Nord vaudois,Yverdon,Yvonand,5939,3536
+Lausanne,Romanel,Cheseaux-sur-Lausanne,5582,4870
+Lausanne,Romanel,Epalinges,5584,9869
+Lausanne,Romanel,Jouxtens-Mézery,5585,1455
+Lausanne,Lausanne-Ville,Lausanne,5586,145707
+Lausanne,Romanel,Le Mont-sur-Lausanne,5587,9785
+Lausanne,Romanel,Romanel-sur-Lausanne,5592,4331
+Lavaux-Oron,NA,Belmont-sur-Lausanne,5581,3891
+Lavaux-Oron,NA,Bourg-en-Lavaux,5613,5558
+Lavaux-Oron,NA,Chexbres,5601,2272
+Lavaux-Oron,NA,Forel (Lavaux),5604,2113
+Lavaux-Oron,NA,Jorat-Mézières,5806,3209
+Lavaux-Oron,NA,Lutry,5606,10843
+Lavaux-Oron,NA,Maracon,5790,565
+Lavaux-Oron,NA,Montpreveyres,5792,670
+Lavaux-Oron,NA,Oron,5805,6451
+Lavaux-Oron,NA,Paudex,5588,1483
+Lavaux-Oron,NA,Puidoux,5607,3014
+Lavaux-Oron,NA,Pully,5590,19550
+Lavaux-Oron,NA,Rivaz,5609,330
+Lavaux-Oron,NA,St-Saphorin (Lavaux),5610,393
+Lavaux-Oron,NA,Savigny,5611,3598
+Lavaux-Oron,NA,Servion,5799,2241
+Morges,NA,Aclens,5621,609
+Morges,NA,Allaman,5851,412
+Morges,NA,Aubonne,5422,3896
+Morges,NA,Ballens,5423,580
+Morges,NA,Berolle,5424,300
+Morges,NA,Bière,5425,1701
+Morges,NA,Bougy-Villars,5426,493
+Morges,NA,Bremblens,5622,596
+Morges,NA,Buchillon,5623,682
+Morges,NA,La Chaux (Cossonay),5474,421
+Morges,NA,Chavannes-le-Veyron,5475,160
+Morges,NA,Chevilly,5476,345
+Morges,NA,Chigny,5628,410
+Morges,NA,Clarmont,5629,232
+Morges,NA,Cossonay,5477,4974
+Morges,NA,Cuarnens,5479,557
+Morges,NA,Denens,5631,748
+Morges,NA,Denges,5632,1844
+Morges,NA,Dizy,5481,239
+Morges,NA,Echandens,5633,3116
+Morges,NA,Echichens,5634,3241
+Morges,NA,Eclépens,5482,1202
+Morges,NA,Etoy,5636,3013
+Morges,NA,Féchy,5427,906
+Morges,NA,Ferreyres,5483,308
+Morges,NA,Gimel,5428,2453
+Morges,NA,Gollion,5484,1091
+Morges,NA,Grancy,5485,541
+Morges,NA,Hautemorges,5656,4426
+Morges,NA,L'Isle,5486,1106
+Morges,NA,Lavigny,5637,1108
+Morges,NA,Lonay,5638,2719
+Morges,NA,Lully,5639,824
+Morges,NA,Lussy-sur-Morges,5640,721
+Morges,NA,Mauraz,5488,74
+Morges,NA,Moiry,5490,295
+Morges,NA,Mollens,5431,320
+Morges,NA,Mont-la-Ville,5491,504
+Morges,NA,Montricher,5492,947
+Morges,NA,Morges,5642,17813
+Morges,NA,Orny,5493,525
+Morges,NA,Pompaples,5497,917
+Morges,NA,Préverenges,5643,5236
+Morges,NA,Romanel-sur-Morges,5645,462
+Morges,NA,Saint-Livres,5435,708
+Morges,NA,Saint-Oyens,5436,449
+Morges,NA,Saint-Prex,5646,5922
+Morges,NA,La Sarraz,5498,2609
+Morges,NA,Saubraz,5437,441
+Morges,NA,Senarclens,5499,505
+Morges,NA,Tolochenaz,5649,1928
+Morges,NA,Vaux-sur-Morges,5650,185
+Morges,NA,Villars-sous-Yens,5652,603
+Morges,NA,Vufflens-le-Château,5653,887
+Morges,NA,Vullierens,5654,577
+Morges,NA,Yens,5655,1481
+Nyon,NA,Arnex-sur-Nyon,5701,274
+Nyon,NA,Arzier-Le Muids,5702,2999
+Nyon,NA,Bassins,5703,1468
+Nyon,NA,Begnins,5704,2047
+Nyon,NA,Bogis-Bossey,5705,961
+Nyon,NA,Borex,5706,1168
+Nyon,NA,Bursinel,5852,535
+Nyon,NA,Bursins,5853,831
+Nyon,NA,Burtigny,5854,406
+Nyon,NA,Chavannes-de-Bogis,5707,1423
+Nyon,NA,Chavannes-des-Bois,5708,983
+Nyon,NA,Chéserex,5709,1272
+Nyon,NA,Coinsins,5710,510
+Nyon,NA,Commugny,5711,2968
+Nyon,NA,Coppet,5712,3233
+Nyon,NA,Crans,5713,2483
+Nyon,NA,Crassier,5714,1272
+Nyon,NA,Duillier,5715,1120
+Nyon,NA,Dully,5855,637
+Nyon,NA,Essertines-sur-Rolle,5856,770
+Nyon,NA,Eysins,5716,1811
+Nyon,NA,Founex,5717,3737
+Nyon,NA,Genolier,5718,2071
+Nyon,NA,Gilly,5857,1429
+Nyon,NA,Gingins,5719,1241
+Nyon,NA,Givrins,5720,1096
+Nyon,NA,Gland,5721,13978
+Nyon,NA,Grens,5722,413
+Nyon,NA,Longirod,5429,558
+Nyon,NA,Luins,5858,640
+Nyon,NA,Marchissy,5430,492
+Nyon,NA,Mies,5723,2194
+Nyon,NA,Mont-sur-Rolle,5859,2759
+Nyon,NA,Nyon,5724,23732
+Nyon,NA,Perroy,5860,1573
+Nyon,NA,Prangins,5725,4243
+Nyon,NA,La Rippe,5726,1218
+Nyon,NA,Rolle,5861,6604
+Nyon,NA,Saint-Cergue,5727,3057
+Nyon,NA,Saint-George,5434,1082
+Nyon,NA,Signy-Avenex,5728,586
+Nyon,NA,Tannay,5729,1732
+Nyon,NA,Tartegnin,5862,246
+Nyon,NA,Trélex,5730,1427
+Nyon,NA,Le Vaud,5731,1374
+Nyon,NA,Vich,5732,1174
+Nyon,NA,Vinzel,5863,385
+Ouest lausannois,NA,Bussigny,5624,12138
+Ouest lausannois,NA,Chavannes-près-Renens,5627,10735
+Ouest lausannois,NA,Crissier,5583,11116
+Ouest lausannois,NA,Ecublens,5635,13758
+Ouest lausannois,NA,Prilly,5589,13069
+Ouest lausannois,NA,Renens,5591,21827
+Ouest lausannois,NA,Saint-Sulpice,5648,5193
+Ouest lausannois,NA,Villars-Sainte-Croix,5651,943
+Riviera-Pays-d'Enhaut,Vevey,Blonay - Saint-Légier,5892,12597
+Riviera-Pays-d'Enhaut,Vevey,Chardonne,5882,3384
+Riviera-Pays-d'Enhaut,Pays-d'Enhaut,Château-d'Oex,5841,3689
+Riviera-Pays-d'Enhaut,Vevey,Corseaux,5883,2326
+Riviera-Pays-d'Enhaut,Vevey,Corsier-sur-Vevey,5884,3458
+Riviera-Pays-d'Enhaut,Vevey,Jongny,5885,1917
+Riviera-Pays-d'Enhaut,Vevey,Montreux,5886,27166
+Riviera-Pays-d'Enhaut,Pays-d'Enhaut,Rossinière,5842,504
+Riviera-Pays-d'Enhaut,Pays-d'Enhaut,Rougemont,5843,805
+Riviera-Pays-d'Enhaut,Vevey,La Tour-de-Peilz,5889,13053
+Riviera-Pays-d'Enhaut,Vevey,Vevey,5890,20179
+Riviera-Pays-d'Enhaut,Vevey,Veytaux,5891,1008

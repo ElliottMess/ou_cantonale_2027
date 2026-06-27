@@ -1,0 +1,20 @@
+votation,nom_complet,date,positionnement_politique_oui,niveau,type
+gc_2022_PS,Grand Conseil 2022 — PS et apparentés,20.03.22,centre-gauche,cantonal,election
+gc_2022_Gauche,"Grand Conseil 2022 — gauche (POP, EàG, sol.)",20.03.22,gauche,cantonal,election
+gc_2022_extreme-droite,"Grand Conseil 2022 — extrême droite (UDC, ADL)",20.03.22,extreme-droite,cantonal,election
+gc_2022_droite-bourgeoise,Grand Conseil 2022 — droite bourgeoise (PLR),20.03.22,droite,cantonal,election
+gc_2022_centre,"Grand Conseil 2022 — centre (Le Centre, PEV, VL)",20.03.22,centre,cantonal,election
+gc_2022_verts,Grand Conseil 2022 — Verts,20.03.22,centre-gauche,cantonal,election
+mormont,Initiative Sauvons le Mormont,28.09.25,gauche,cantonal,initiative
+mormont_cp,Contre-projet à l'initiative Sauvons le Mormont,28.09.25,droite,cantonal,contre-projet
+mormont_sub,Question subsidiaire — Sauvons le Mormont,28.09.25,gauche,cantonal,subsidiaire
+droits_pol_etrangers,Droits politiques des étrangères et étrangers,28.09.25,gauche,cantonal,initiative
+init_avenir,Initiative pour l'avenir,30.11.25,gauche,federal,initiative
+vdce_2026_eag,"Conseil d'État 2026 — Raboud Sidorenko Agathe (EàG, 153 communes)",08.03.26,gauche,cantonal,election
+cc_2026_eag,Conseils communaux 2026 — EàG / da. / S&E (6 communes),08.03.26,gauche,communal,election
+init_durabilite,Initiative pour la durabilité,14.06.26,extreme-droite,federal,initiative
+fed_service_civil,Loi fédérale sur le service civil (LSC),14.06.26,droite,federal,initiative
+salaire_min_const,Initiative constitutionnelle salaire minimum cantonal,14.06.26,gauche,cantonal,initiative
+salaire_min_legis,Initiative législative salaire minimum cantonal,14.06.26,gauche,cantonal,initiative
+salaire_min_legis_cp,Contre-projet à l'initiative législative salaire minimum cantonal,14.06.26,droite,cantonal,contre-projet
+salaire_min_legis_sub,Question subsidiaire — salaire minimum cantonal,14.06.26,gauche,cantonal,subsidiaire
