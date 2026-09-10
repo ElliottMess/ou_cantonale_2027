@@ -12,7 +12,7 @@ Identifier, dans le canton de Vaud, les communes où un effort de campagne aurai
 |---|---|---|
 | Votations 2025–2026 | Résultats par commune, avec orientation politique du « oui » (`positionnement_politique_oui`) | Construire l'indice de positionnement |
 | Élections Grand Conseil 2022 | Résultats par liste et par commune (`gc_2022_Gauche`, `gc_2022_PS`, `gc_2022_verts`) | Établir la part EàG et la part de gauche de référence |
-| Conseil d'État mars 2026 | Votes pour Agathe Raboud Sidorenko (EàG) par commune — 153 communes où la liste a obtenu des suffrages | Indicateur cantonal de force EàG, données **partielles**|
+| Conseil d'État mars 2026 | Voix pour Agathe Raboud Sidorenko (EàG) par commune — 153 communes où la liste da. a été déposée | **Deuxième référence de performance** (§4, §7) : test électoral réel le plus récent. Données **partielles**, hors ACP |
 | Conseils communaux mars 2026 | Répartition des sièges par parti (EàG / da. / S&E) dans 6 communes (Lausanne, Nyon, Corsier-sur-Vevey, Montreux, Vevey, Yverdon) | Indicateur complémentaire de force locale — données **parcellaires**, exclues de l'ACP principale |
 | Effectifs électoraux | Bulletins valables par commune (champ `Valables` du CSV élections) | Pondération, distinction persuasion / mobilisation |
 | Population 31.12.2025 | Population par arrondissement et sous-arrondissement (source : État de Vaud) | Répartition des mandats 2027 (Art. 46/46a LEDP) |
@@ -30,15 +30,17 @@ Avant toute analyse, réorienter chaque votation pour qu'une valeur élevée sig
 
 Les données de mars 2026 sont de deux natures :
 
-- **Conseil d'État** (`vdce_2026_eag`) : votes pour Raboud Sidorenko (EàG) dans 153 communes. La valeur encodée est la part de Raboud parmi les bulletins de la liste (NON = Nordmann + Thuillard + éparses). Les communes non couvertes (liste da. absente) reçoivent la valeur **0** — ce sont de vrais zéros, pas des données manquantes.
+- **Conseil d'État** (`vdce_2026_eag`) : voix pour Raboud Sidorenko (EàG) dans 153 communes. C'est le **test électoral réel le plus récent** de la force d'EàG. Ce n'est **pas** une prise de position sur un objet : c'est une performance électorale, traitée comme la référence 2022 (§4, §7) et **exclue de l'ACP de positionnement**. Les communes non couvertes (liste da. absente) reçoivent la valeur **0** — vrai zéro, pas donnée manquante — mais le drapeau `raboud_couvert` distingue les 153 communes réellement contestées.
 - **Conseils communaux** (`cc_2026_eag`) : part de sièges EàG/da./S&E dans 6 grandes communes seulement — trop lacunaire pour l'ACP, utilisé **en aval** comme indicateur de présence institutionnelle locale (§7 et §8).
 
 ### 3.3 Sélection des votations
 
-Les votations retenues dans l'ACP sont les initiatives et lois (type `initiative` ou `loi`), plus `vdce_2026_eag`. Sont exclues :
+L'ACP mesure le **positionnement sur enjeux** : elle ne retient que des scrutins d'objet, initiatives et lois (type `initiative` ou `loi`). Sont exclus :
 
-- `init_durabilite` (données insuffisantes) ;
+- les résultats électoraux (`gc_2022_*`, `vdce_2026_eag`, `cc_2026_eag`) — ce sont des performances, pas des positions ;
 - les contre-projets (`_cp`) et questions subsidiaires (`_sub`) — voir §3.4.
+
+`init_durabilite` (initiative « biodiversité », oui codé à droite) est conservée : la couverture communale est complète. La retirer se fait en une ligne dans `analyse.R` (§4).
 
 ### 3.4 Traitement des questions liées
 
@@ -83,6 +85,15 @@ Lecture des résidus :
 - **positionnement élevé + résidu négatif** → soutien latent non converti : meilleures cibles de persuasion / mobilisation ;
 - **résidu positif** → la commune sur-performe déjà : marge de progression faible.
 
+### Second point de référence : Raboud au Conseil d'État 2026
+
+La même régression est ajustée sur `part_raboud_2026` (voix Raboud / effectif) pour les 153 communes contestées. Deux constats :
+
+- le positionnement explique **beaucoup mieux** le vote Raboud 2026 (R² ≈ 0,85) que le vote de liste 2022 (R² ≈ 0,58) — le résultat CE est un signal plus propre de la force potentielle d'EàG ;
+- Raboud dépasse la liste 2022 d'environ **+8 pp en médiane** (effet « candidate forte + panachage »).
+
+`tendance_raboud = part_raboud_2026 − part_eag_2022` sert donc de signal de **portée démontrée** (et de tendance depuis 2022). Il alimente la marge de progression au §7. L'inflation liée au panachage est escomptée par `RABOUD_ESCOMPTE` (§0 de `analyse.R`).
+
 ## 5. Répartition des mandats 2027
 
 Les sièges sont d'abord répartis entre **arrondissements** par la population (Art. 46 LEDP — méthode des plus grands restes avec quotient ⌈pop/150⌉), puis subdivisés entre **sous-arrondissements** pour les trois arrondissements divisés :
@@ -122,21 +133,38 @@ Cette classification précède le ciblage communal : il est inutile de hiérarch
 
 ## 7. Score de priorité
 
-Calculé uniquement pour les communes des districts **consolidation** ou **offensive** (§6). Les communes des districts **hors_portee** sont exclues en amont — aucun score ne leur est attribué.
+Les sièges étant attribués **par district électoral**, le score se calcule en deux couches : d'abord le district (quel arrondissement mérite l'effort), puis la commune (où agir à l'intérieur de cet arrondissement). Calculé uniquement pour les districts **consolidation** ou **offensive** (§6) ; les communes des districts **hors_portee** sont exclues en amont — aucun score ne leur est attribué.
+
+### Couche 1 — score de district
 
 ```
-score = marge_de_progression × levier × effectif
+potentiel_district = Σ_communes (potentiel_commune)
+score_district     = potentiel_district × levier
 ```
 
-où `marge_de_progression = max(0, −résidu)`.
+où `levier = 1 / voix_manquantes` (§6) est constant sur tout le district. Ce score classe les arrondissements entre eux (colonne `score_district` de `districts_levier.csv`, graphique « Priorité par district » du dashboard).
 
-En district de **consolidation** (EàG déjà représentée en 2022), la formule devient :
+### Couche 2 — score de commune
 
 ```
-score = max(marge_de_progression, part_eag_2022) × levier × effectif
+potentiel_commune = marge_de_progression × effectif
+score_priorite    = potentiel_commune × levier
+part_score_district = potentiel_commune / potentiel_district
 ```
 
-Cela valorise autant la défense des votes acquis que la progression, dans les districts où EàG a déjà un siège à défendre.
+où la marge retient le **plus fort de deux signaux** :
+
+```
+marge_ecart       = max(0, −résidu)                                  # sous-conversion du positionnement (2022)
+marge_raboud      = max(0, part_raboud_2026 − part_eag_2022) × RABOUD_ESCOMPTE   # portée démontrée au CE 2026
+marge_de_progression = max(marge_ecart, marge_raboud)
+```
+
+`marge_raboud` capte les communes où EàG a déjà rassemblé, via Raboud, un électorat que son score de liste 2022 ne reflète pas — y compris là où le résidu de la régression est nul ou positif. Pour les communes sans liste da. en 2026, `part_raboud_2026 = 0` et seul `marge_ecart` joue.
+
+`score_priorite` s'interprète comme la fraction `part_score_district` du `score_district` : cela permet de choisir les communes à cibler à l'intérieur d'un district priorisé.
+
+En district de **consolidation** (EàG déjà représentée en 2022), `potentiel_commune` utilise `max(marge_de_progression, part_eag_2022)` au lieu de la seule marge, pour valoriser autant la défense des votes acquis que la progression.
 
 ## 8. Persuasion vs mobilisation
 
@@ -146,17 +174,18 @@ La participation moyenne aux votations et le profil politique permettent de dist
 |---|---|---|
 | **consolidation** | district en consolidation ET dim1 > médiane, OU présence institutionnelle CC 2026 | Défendre les bastions |
 | **mobilisation** | dim1 > médiane ET participation < médiane | Faire voter un électorat acquis |
-| **persuasion** | dim1 ≤ médiane ET résidu < 0 | Déplacer le vote |
+| **persuasion** | dim1 ≤ médiane ET résidu < 0, OU `marge_raboud` dominante et `tendance_raboud` ≥ médiane (communes contestées) | Déplacer le vote |
 | **autre** | aucune des conditions ci-dessus | — |
 
-Les seuils de dim1 et de participation sont calculés sur la médiane de l'ensemble des communes retenues.
+Les seuils de dim1 et de participation sont calculés sur la médiane de l'ensemble des communes retenues. La branche « Raboud » de la persuasion ne se déclenche qu'au-dessus de la médiane de `tendance_raboud` : le socle systémique de +8 pp ne suffit pas, il faut une surperformance **locale** marquée.
 
 ## 9. Limites et précautions
 
 - **Vote sur enjeux ≠ vote partisan.** L'indice de positionnement est un indicateur indirect du vote de parti, pas un substitut.
+- **CE 2026 ≠ GC 2027.** L'élection au Conseil d'État est majoritaire avec panachage : le score de Raboud agrège des voix PS/Verts qui ne se reporteront pas mécaniquement sur une liste EàG au Grand Conseil. C'est un **plafond de portée**, escompté par `RABOUD_ESCOMPTE`, pas une prédiction. Couverture partielle : 153 communes sur ~300.
 - **Sophisme écologique.** L'analyse cible des *lieux*, non des individus ; ne pas inférer de comportements individuels.
-- **Décalage temporel.** Résultats de 2022 vs votations jusqu'en juin 2026. L'écart entre le positionnement récent et la référence 2022 constitue lui-même un signal de *tendance* (commune en mouvement vers la gauche ou la droite).
-- **HB simplifié.** Le levier est estimé à partir des seules voix EàG ; un calcul exact requiert les voix de toutes les listes.
+- **Décalage temporel.** Résultats de 2022 vs scrutins jusqu'en 2026. L'écart entre le signal récent (positionnement, Raboud) et la référence 2022 constitue lui-même un signal de *tendance*.
+- **HB simplifié.** Le levier est estimé à partir des seules voix EàG ; un calcul exact requiert les voix de toutes les listes. Le scénario `sieges_eag_raboud` (sièges à un niveau de soutien « Raboud CE 2026 ») est indicatif, calculé avec le même quota simplifié.
 - **SEUIL_ATTEIGNABLE.** Le seuil de 12 % est une hypothèse stratégique, pas un fait électoral. Un district à 14–15 % peut devenir atteignable si la liste se renforce ou si une vague favorable se profile. À calibrer selon les ressources disponibles et les perspectives de croissance ; l'effet sur le ciblage est visible directement dans le tableau des districts du dashboard.
 
 ## 10. Outils
@@ -165,8 +194,19 @@ Les seuils de dim1 et de participation sont calculés sur la médiane de l'ensem
 
 | Fichier | Rôle |
 |---|---|
+| `merge_votations.R` | Consolidation des scrutins bruts (`data/raw/*.xlsx`, Grand Conseil, Conseil d'État) → `data/processed/data_votations_vd.csv` |
 | `analyse.R` | Pipeline complet : chargement, ACP, écart, levier, scores → `data/processed/` |
 | `app.R` | Dashboard Shiny interactif (lecture des fichiers `data/processed/`) |
+
+### Données géographiques (non versionnées)
+
+Les fonds de carte du dashboard ne sont pas suivis par git (`*.gpkg` dans `.gitignore`, trop
+volumineux). À placer manuellement pour exécuter `app.R` :
+
+| Fichier | Source |
+|---|---|
+| `data/raw/CH_communes_no_lacs.gpkg` | Limites communales suisses sans les lacs (OFS / swissBOUNDARIES3D, couche `CH_communes_no_lacs`) |
+| `data/processed/districts_vaud_no_lacs.gpkg` | Districts vaudois sans les lacs, dérivé de swissBOUNDARIES3D (couche `districts`) |
 
 ### Packages R
 
