@@ -5,3 +5,5 @@
 .claude/
 *.Rproj
 *.Rdata
+*.pdf
+*.gpkg

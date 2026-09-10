@@ -154,8 +154,8 @@ raw <- raw %>%
 sans_mapping <- raw %>% filter(is.na(district_electoral)) %>%
   distinct(code_ofs)
 if (nrow(sans_mapping) > 0) {
-  warning("Districts sans mapping : ",
-          paste(sans_mapping$district_electoral, collapse = ", "))
+  warning("Communes sans mapping district (code_ofs) : ",
+          paste(sans_mapping$code_ofs, collapse = ", "))
 }
 
 
@@ -338,14 +338,14 @@ dist_votes <- raw %>%
   pivot_wider(names_from = votation, values_from = OUI) %>%
   mutate(
     total_valables = Valables,
-    votes_eag    = rowSums(across(all_of(LISTE_EAG)),            na.rm = TRUE),
+    votes_eag    = rowSums(across(all_of(LISTE_EAG)), na.rm = TRUE),
     votes_gauche   = rowSums(across(all_of(LISTES_GAUCHE_PROFIL)), na.rm = TRUE)
   ) %>%
   left_join(sieges_ref, by = "district_electoral")
 
 dist_levier <- dist_votes %>%
   mutate(
-    part_eag_dist    = votes_eag    / total_valables,
+    part_eag_dist    = votes_eag / total_valables,
     part_gauche_dist = votes_gauche / total_valables,
     # Quota HB par liste EàG (sièges attribués par liste, pas en bloc)
     quota_hb         = total_valables / (sieges_2027 + 1),
@@ -377,12 +377,17 @@ cat(sprintf("  hors_portee   : %d  (exclus du ciblage communal)\n",
             sum(dist_levier$statut_district == "hors_portee")))
 
 
-# ── 9. SCORE DE PRIORITÉ (§6 du README) ─────────────────────
+# ── 9. SCORE DE PRIORITÉ (§6-7 du README) ────────────────────
+# Les sièges sont attribués par district électoral (Hagenbach-Bischoff) :
+# la priorité est donc d'abord évaluée au niveau du district (layer 1 —
+# quel district mérite l'effort), puis répartie entre ses communes selon
+# leur potentiel propre (layer 2 — quelle commune cibler dans ce district).
+# Les districts hors_portee sont exclus en amont (§6 du README) : aucun
+# score n'est calculé pour leurs communes.
 
 communes <- communes %>%
   left_join(
-    dist_levier %>% select(district_electoral, levier, voix_manquantes,
-                           part_manquante, statut_district),
+    dist_levier %>% select(district_electoral, levier, part_manquante, statut_district),
     by = "district_electoral"
   ) %>%
   filter(statut_district != "hors_portee") %>%
@@ -390,12 +395,30 @@ communes <- communes %>%
     # Potentiel brut : fort positionnement gauche ET sous-conversion
     marge_progression = pmax(0, -ecart),
     # Consolidation : défendre les votes acquis a la même valeur que progresser
-    score_priorite    = case_when(
-      statut_district == "consolidation" ~
-        pmax(marge_progression, part_eag_2022) * levier * effectif,
-      TRUE ~
-        marge_progression * levier * effectif
-    )
+    potentiel_commune = case_when(
+      statut_district == "consolidation" ~ pmax(marge_progression, part_eag_2022),
+      TRUE                               ~ marge_progression
+    ) * effectif
+  )
+
+# Layer 1 — score de district : potentiel total du district × levier siège
+district_score <- communes %>%
+  group_by(district_electoral) %>%
+  summarise(potentiel_district = sum(potentiel_commune, na.rm = TRUE), .groups = "drop") %>%
+  left_join(dist_levier %>% select(district_electoral, levier), by = "district_electoral") %>%
+  mutate(score_district = potentiel_district * levier)
+
+# Layer 2 — score communal : part du potentiel de district captée par la commune
+communes <- communes %>%
+  left_join(
+    district_score %>% select(district_electoral, potentiel_district, score_district),
+    by = "district_electoral"
+  ) %>%
+  mutate(
+    score_priorite      = potentiel_commune * levier,
+    part_score_district = if_else(potentiel_district > 0,
+                                   potentiel_commune / potentiel_district, 0),
+    voix_manquantes     = ceiling(part_manquante * effectif)
   )
 
 
@@ -421,6 +444,12 @@ print(table(communes$profil))
 
 
 # ── 11. SORTIES ──────────────────────────────────────────────
+
+dist_levier <- dist_levier %>%
+  left_join(
+    district_score %>% select(district_electoral, potentiel_district, score_district),
+    by = "district_electoral"
+  )
 
 write_csv(communes,    "data/processed/communes_scores.csv")
 write_csv(dist_levier, "data/processed/districts_levier.csv")
@@ -475,7 +504,6 @@ ggsave("data/processed/ecart_conversion.pdf", p_ecart, width = 11, height = 8)
 
 # Score de priorité par district
 p_scores <- communes %>%
-  # filter(profil != "autre") %>%
   group_by(district_electoral, profil) %>%
   summarise(score_total = sum(score_priorite, na.rm = TRUE), .groups = "drop") %>%
   ggplot(aes(x = reorder(district_electoral, score_total),

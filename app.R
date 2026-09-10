@@ -1,55 +1,6 @@
 # ============================================================
 # Dashboard Shiny — Ciblage EàG, Cantonales Vaud 2027
 # ============================================================
-#
-# OBJECTIF
-#   Identifier les communes vaudoises où un effort de campagne a le meilleur
-#   rendement en sièges pour les cantonales Grand Conseil 2027.
-#   Formule de base : score = marge_de_progression × levier × effectif
-#
-# PIPELINE (calculé par analyse.R, lu ici depuis data/processed/)
-#
-#   1. ACP — indice de positionnement
-#      Variables : votations cantonales/fédérales 2025–2026 + CE 2026 (Raboud).
-#      Orientation : valeur élevée = plus à gauche.
-#      dim1 = coordonnée sur Dim.1 = indice gauche–droite de la commune.
-#
-#   2. Écart de conversion
-#      Régression pondérée : part_eag_2022 ~ dim1 (poids = effectif).
-#      Résidu (ecart) = sur- ou sous-performance d'EàG vs le potentiel local.
-#      marge_progression = max(0, −ecart)  →  potentiel latent non capté.
-#
-#   3. Classification stratégique des districts  [ÉTAPE PRÉALABLE AU SCORE]
-#      Avant de scorer des communes, on écarte les districts sans perspective.
-#        consolidation : EàG avait ≥ 1 siège en 2022  →  défendre
-#        offensive     : voix manquantes ≤ 12 % du total  →  conquérir
-#        hors_portee   : trop loin du prochain siège  →  EXCLU du ciblage
-#      Paramètre : SEUIL_ATTEIGNABLE = 0.12 (ajustable dans analyse.R).
-#
-#   4. Levier (Hagenbach-Bischoff simplifié, par district)
-#      quota_hb        = total_valables / (sieges_2027 + 1)
-#      voix_manquantes = quota_hb × (sieges_eag + 1) − votes_eag
-#      levier          = 1 / voix_manquantes  (absolu — indépendant de la
-#                        taille du district, contrairement à total/manquants)
-#
-#   5. Score communal
-#      Présence/offensive : marge_progression × levier × effectif
-#      Consolidation      : max(marge_progression, part_eag_2022) × levier × effectif
-#
-#   6. Profils d'action (sur les communes retenues)
-#      consolidation : district avec siège EàG  OU  présence CC 2026
-#      mobilisation  : dim1 > médiane  ET  participation < médiane
-#      persuasion    : dim1 ≤ médiane  ET  ecart < 0
-#      autre         : aucune des conditions ci-dessus
-#
-# LIMITES
-#   - Référence électorale 2022 : décalage temporel de 5 ans. L'écart entre
-#     le positionnement récent (ACP 2025–2026) et la base 2022 est lui-même
-#     un signal de tendance, pas un biais à corriger.
-#   - HB simplifié : voix_manquantes calculé sur les seules voix EàG.
-#     Le calcul exact requiert les voix de toutes les listes concurrentes.
-#   - Sophisme écologique : l'analyse cible des lieux, pas des individus.
-# ============================================================
 library(shiny)
 library(bslib)
 library(tidyverse)
@@ -57,7 +8,7 @@ library(FactoMineR)
 library(DT)
 library(plotly)
 library(leaflet)
-library(sf) 
+library(sf)
 library(here)
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -90,6 +41,17 @@ communes_limites <- read_sf(
   st_transform(4326) |>
   select(code_ofs = bfs_nummer) |>
   left_join(communes, by = "code_ofs")
+
+districts_limites <- read_sf(
+  here::here("data/processed/districts_vaud_no_lacs.gpkg"),
+  layer = "districts"
+) |>
+  filter(kantonsnummer == 22) |>
+  st_zm(drop = TRUE) |>
+  st_transform(4326) |>
+  select(code_ofs = bfs_nummer) |>
+  left_join(communes, by = "code_ofs")
+
 
 # ── Reconstruction ACP ───────────────────────────────────────
 raw_vot <- read_csv("data/processed/data_votations_vd.csv", show_col_types = FALSE) |>
@@ -230,7 +192,7 @@ ui <- page_fluid(
     )
   ),
 
-  # ── Carte ────────────────────────────────────────────────────
+  # ── Carte score priorité ────────────────────────────────────────────────────
   card(
     card_header(
       div(class = "d-flex justify-content-between align-items-center",
@@ -247,6 +209,20 @@ ui <- page_fluid(
     ),
     leafletOutput("p_map", height = "500px")
   ),
+  
+  # ── Carte voix manquantes ────────────────────────────────────────────────────
+  card(
+    card_header(
+      div(class = "d-flex justify-content-between align-items-center",
+          span("Carte — voix manquantes par commune"),
+          selectInput("map_color_voix", NULL,
+                      choices  = c("Voix" = "voix", "Part de voix" = "part"),
+                      selected = "part", width = "120px")
+      )
+    ),
+    leafletOutput("v_map", height = "500px")
+  ),
+  
 
   # ── ACP ─────────────────────────────────────────────────────
   layout_columns(
@@ -315,6 +291,17 @@ ui <- page_fluid(
   ),
 
   # ── Districts ────────────────────────────────────────────────
+  card(
+    card_header(
+      div(class = "d-flex justify-content-between align-items-center",
+        span("Priorité par district (layer 1) — potentiel du district × levier siège"),
+        span(class = "small text-muted",
+             "Les sièges se gagnent au district : ce score classe les districts avant le ciblage communal.")
+      )
+    ),
+    plotlyOutput("p_dist_score", height = "320px")
+  ),
+
   layout_columns(
     col_widths = c(6, 6),
     card(
@@ -537,6 +524,26 @@ server <- function(input, output, session) {
   })
 
   # Districts
+  output$p_dist_score <- renderPlotly({
+    df <- dist_levier |>
+      filter(statut_district != "hors_portee", !is.na(score_district)) |>
+      mutate(district_electoral = fct_reorder(district_electoral, score_district))
+    plot_ly(df, x = ~score_district, y = ~district_electoral, type = "bar",
+            orientation = "h",
+            color = ~statut_district,
+            colors = c(consolidation = "#4dac26", offensive = "#f0a500"),
+            text = ~paste0("<b>", district_electoral, "</b> (", statut_district, ")<br>",
+                           "Score district : ", round(score_district, 2), "<br>",
+                           "Potentiel (voix) : ", round(potentiel_district), "<br>",
+                           "Voix manquantes : ", round(voix_manquantes),
+                           " (", round(part_manquante * 100, 1), "% du total)<br>",
+                           "Sièges EàG 2022 : ", sieges_eag_22),
+            hovertemplate = "%{text}<extra></extra>") |>
+      layout(xaxis  = list(title = "Score de priorité du district"),
+             yaxis  = list(title = ""),
+             legend = list(title = list(text = "Statut")))
+  })
+
   output$p_voix <- renderPlotly({
     df <- dist_levier |>
       mutate(district_electoral = fct_reorder(district_electoral, voix_manquantes))
@@ -651,7 +658,7 @@ server <- function(input, output, session) {
                   ))
   })
 
-  # Carte leaflet
+  # Carte leaflet scores
   output$p_map <- renderLeaflet({
     df <- communes_limites
 
@@ -679,9 +686,73 @@ server <- function(input, output, session) {
       "Score : ", round(df$score_priorite), "<br>",
       "EàG 2022 : ", fmt_pct(df$part_eag_2022), "<br>",
       "Résidu : ", round(df$ecart * 100, 1), " pp<br>",
+      "Voix manquantes : ", df$voix_manquantes, "<br>",
       "Effectif : ", fmt_num(df$effectif)
     )
 
+    leaflet(df) |>
+      addProviderTiles(providers$OpenStreetMap.Mapnik) |>
+      addPolygons(
+        fillColor   = fill_col,
+        fillOpacity = 0.75,
+        color       = "#555", weight = 0.5, opacity = 1,
+        highlightOptions = highlightOptions(
+          weight = 2, color = "#222", fillOpacity = 0.9, bringToFront = TRUE
+        ),
+        popup = popup_txt,
+        label = ~Communes
+      ) |>
+      addLegend(
+        position = "bottomright", pal = legend_pal, values = legend_values,
+        title = legend_title, opacity = 0.85,
+        labFormat = if (input$map_color == "score_priorite")
+          labelFormat(transform = function(x) round(expm1(x)))
+        else
+          labelFormat()
+      )
+  })
+
+  # Carte leaflet scores
+  output$v_map <- renderLeaflet({
+    df <- communes_limites
+    
+    if (input$map_color_voix == "voix") {
+      pal <- colorNumeric(
+        "YlOrRd", domain = log1p(df$voix_manquantes), na.color = "#cccccc"
+      )
+      fill_col      <- pal(log1p(df$voix_manquantes))
+      legend_pal    <- pal
+      legend_values <- log1p(df$voix_manquantes)
+      legend_title  <- "Voix (nombre absolu)"
+    } else {
+      pal <- colorNumeric(
+        "YlOrRd", domain = log1p(df$part_manquante), na.color = "#cccccc"
+      )
+      fill_col      <- pal(log1p(df$part_manquante))
+      legend_pal    <- pal
+      legend_values <- log1p(df$part_manquante)
+      legend_title  <- "Voix (part manquante)"
+    }
+    
+    pal <- colorNumeric(
+      "YlOrRd", domain = log1p(df$voix_manquantes), na.color = "#cccccc"
+    )
+    fill_col      <- pal(log1p(df$voix_manquantes))
+    legend_pal    <- pal
+    legend_values <- log1p(df$voix_manquantes)
+    legend_title  <- "Score"
+    
+    popup_txt <- paste0(
+      "<b>", df$Communes, "</b> (", df$district_electoral, ")<br>",
+      "Profil : ", df$profil, "<br>",
+      "Score : ", round(df$score_priorite), "<br>",
+      "EàG 2022 : ", fmt_pct(df$part_eag_2022), "<br>",
+      "Résidu : ", round(df$ecart * 100, 1), " pp<br>",
+      "Voix manquantes : ", df$voix_manquantes, "<br>",
+      "Part manquantes : ", df$part_manquantes, "<br>",
+      "Effectif : ", fmt_num(df$effectif)
+    )
+    
     leaflet(df) |>
       addProviderTiles(providers$CartoDB.Positron) |>
       addPolygons(
@@ -703,14 +774,13 @@ server <- function(input, output, session) {
           labelFormat()
       )
   })
-
+  
   # Méthodologie
   output$ui_methodo <- renderUI({
     div(class = "d-flex flex-column gap-4 py-1",
 
       p(class = "text-muted",
-        "Ce dashboard classe les communes vaudoises par rendement attendu en sièges pour les cantonales Grand Conseil 2027. ",
-        "Il ne dit pas combien de ressources investir au total — il dit ", strong("où"), " les concentrer pour maximiser les chances d'EàG."),
+        "Ce dashboard classe les communes vaudoises par rendement attendu en sièges pour les cantonales Grand Conseil 2027."),
 
       # Score
       div(class = "border rounded p-3",
