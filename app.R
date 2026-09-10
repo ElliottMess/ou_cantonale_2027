@@ -30,7 +30,7 @@ communes    <- read_csv("data/processed/communes_scores.csv",  show_col_types = 
 dist_levier <- read_csv("data/processed/districts_levier.csv", show_col_types = FALSE)
 dict_vot    <- read_csv("data/processed/votations_dict.csv",         show_col_types = FALSE) |>
   filter(!duplicated(votation))%>%
-  filter(type %in% c("initiative", "loi") | votation %in% c("vdce_2026_eag"))
+  filter(type %in% c("initiative", "loi"))   # ACP = positionnement sur enjeux ; Raboud CE 2026 traité à part (§7)
 
 communes_limites <- read_sf(
     here::here("data/raw/CH_communes_no_lacs.gpkg"),
@@ -72,10 +72,6 @@ mat_wide <- vot_orient |>
   pivot_wider(names_from = votation, values_from = score)
 cols_vot <- setdiff(names(mat_wide), c("Communes", "code_ofs"))
 
-# vdce_2026_eag : communes non couvertes par la liste da. = 0 voix Raboud
-if ("vdce_2026_eag" %in% cols_vot)
-  mat_wide$vdce_2026_eag[is.na(mat_wide$vdce_2026_eag)] <- 0
-
 mat_complete <- mat_wide |>
   filter(rowSums(is.na(across(all_of(cols_vot)))) / length(cols_vot) <= SEUIL_NA)
 for (v in cols_vot) {
@@ -97,7 +93,8 @@ ind_df <- as.data.frame(res_pca$ind$coord[, 1:2]) |>
   left_join(communes |> select(Communes, district_electoral, profil,
                                part_eag_2022, part_gauche_2022, effectif,
                                score_priorite, ecart, dim1, particip_moy,
-                               part_eag_cc),
+                               part_eag_cc, part_raboud_2026, tendance_raboud,
+                               raboud_couvert),
             by = "Communes")
 if (flip) ind_df <- mutate(ind_df, Dim1 = -Dim1)
 ind_df <- ind_df |>
@@ -134,15 +131,19 @@ ui <- page_fluid(
         col_widths = c(4, 4, 4),
 
         div(
-          h6(class = "fw-bold mb-2", "Le score de priorité"),
+          h6(class = "fw-bold mb-2", "Le score de priorité — en deux temps"),
           p(class = "small mb-1",
-            "Chaque commune est classée selon trois facteurs multipliés :"),
+            "Les sièges se gagnent au ", strong("district"), " : on classe donc d'abord les districts, ",
+            "puis on répartit l'effort entre leurs communes."),
           tags$ul(class = "small mb-1 ps-3",
-            tags$li(strong("Marge de progression"), " — potentiel EàG non capté en 2022"),
-            tags$li(strong("Levier siège"), " — proximité du prochain siège dans le district"),
-            tags$li(strong("Effectif"), " — nombre d'électeurs de la commune")),
+            tags$li(strong("1. Score de district"), " — potentiel total du district (somme des marges communales) × levier siège (1 / voix manquantes)"),
+            tags$li(strong("2. Score de commune"), " — part de ce potentiel captée par la commune : sa marge de progression × son effectif")),
+          p(class = "small mb-1",
+            "La ", strong("marge de progression"), " retient le plus fort de deux signaux : ",
+            "la sous-conversion du positionnement (résidu 2022) ", em("ou"),
+            " le surcroît démontré par Raboud au CE 2026 (part Raboud − part EàG 2022)."),
           div(class = "bg-light rounded p-2 text-center font-monospace small",
-          "score  =  marge de progression  ×  (1 / voix manquantes)  ×  effectif"),
+          "score commune  =  marge de progression  ×  (1 / voix manquantes)  ×  effectif"),
           p(class = "small text-muted mb-0",
             "Seuls les districts à moins de 12 % du prochain siège EàG",
             " (ou déjà représentés) sont inclus dans le ciblage.")
@@ -168,7 +169,8 @@ ui <- page_fluid(
         div(
           h6(class = "fw-bold mb-2", "À garder en tête"),
           tags$ul(class = "small mb-0 ps-3",
-            tags$li("La référence électorale est 2022 — 5 ans d'écart avec 2027."),
+            tags$li("Deux références : la liste EàG au GC 2022, et Raboud au Conseil d'État 2026 (153 communes)."),
+            tags$li("Le CE 2026 est majoritaire avec panachage : le score de Raboud est un plafond de portée, pas une prédiction de vote de liste."),
             tags$li("Positionnement sur les votations ≠ vote de liste EàG."),
             tags$li("Analyse géographique : ne pas inférer de comportements individuels."),
             tags$li("Le seuil de 12 % est un choix stratégique, pas un fait électoral."))
@@ -272,8 +274,11 @@ ui <- page_fluid(
   card(
     card_header(
       div(class = "d-flex justify-content-between align-items-center",
-        span("Écart de conversion — positionnement ACP vs vote EàG 2022"),
+        span("Écart de conversion — positionnement ACP vs vote EàG"),
         div(class = "d-flex gap-3 align-items-center",
+          div(class = "d-flex align-items-center gap-1",
+            checkboxInput("ecart_raboud", "Superposer Raboud CE 2026", TRUE)
+          ),
           div(class = "d-flex align-items-center gap-1",
             span(class = "small text-muted", "District :"),
             selectInput("ecart_dist", NULL,
@@ -491,10 +496,10 @@ server <- function(input, output, session) {
     fit <- data.frame(dim1 = xr, y = predict(m, newdata = data.frame(dim1 = xr)))
     lim <- max(abs(df$ecart), na.rm = TRUE)
 
-    plot_ly() |>
+    p <- plot_ly() |>
       add_trace(
         data = df, x = ~dim1, y = ~part_eag_2022,
-        type = "scatter", mode = "markers", name = "Communes",
+        type = "scatter", mode = "markers", name = "EàG 2022 (liste GC)",
         marker = list(
           color      = ~ecart,
           colorscale = list(c(0, "#d6604d"), c(0.5, "#f7f7f7"), c(1, "#2166ac")),
@@ -506,6 +511,10 @@ server <- function(input, output, session) {
         text = ~paste0("<b>", Communes, "</b> (", district_electoral, ")<br>",
                        "Positionnement : ", round(dim1, 2), "<br>",
                        "EàG 2022 : ", fmt_pct(part_eag_2022), "<br>",
+                       "Raboud CE 2026 : ",
+                       ifelse(raboud_couvert, fmt_pct(part_raboud_2026), "liste da. absente"), "<br>",
+                       "Tendance : ", ifelse(raboud_couvert,
+                                             paste0(sprintf("%+.1f", tendance_raboud * 100), " pp"), "—"), "<br>",
                        "Résidu : ", round(ecart * 100, 1), " pp<br>",
                        "Effectif : ", fmt_num(effectif), "<br>",
                        "Profil : ", profil),
@@ -513,14 +522,42 @@ server <- function(input, output, session) {
       ) |>
       add_trace(
         data = fit, x = ~dim1, y = ~y,
-        type = "scatter", mode = "lines", name = "Régression",
+        type = "scatter", mode = "lines", name = "Régression 2022",
         line = list(color = "#333", width = 2, dash = "dash"), hoverinfo = "skip"
-      ) |>
-      layout(
-        xaxis  = list(title = "Positionnement (Dim.1 ACP — gauche →)"),
-        yaxis  = list(title = "Part EàG 2022", tickformat = ".0%"),
-        legend = list(orientation = "h", y = -0.12)
       )
+
+    if (isTRUE(input$ecart_raboud)) {
+      dr <- df |> filter(raboud_couvert, !is.na(part_raboud_2026))
+      if (nrow(dr) >= 3) {
+        mr  <- lm(part_raboud_2026 ~ dim1, weights = effectif, data = dr)
+        xrr <- seq(min(dr$dim1), max(dr$dim1), length.out = 120)
+        fitr <- data.frame(dim1 = xrr, y = predict(mr, newdata = data.frame(dim1 = xrr)))
+        p <- p |>
+          add_trace(
+            data = dr, x = ~dim1, y = ~part_raboud_2026,
+            type = "scatter", mode = "markers", name = "Raboud CE 2026",
+            marker = list(color = "#8c6bb1", symbol = "diamond",
+                          size = ~pmax(4, log(effectif + 1) * 2.2),
+                          opacity = 0.55, line = list(width = 0.3, color = "#444")),
+            text = ~paste0("<b>", Communes, "</b> (", district_electoral, ")<br>",
+                           "Raboud CE 2026 : ", fmt_pct(part_raboud_2026), "<br>",
+                           "EàG 2022 : ", fmt_pct(part_eag_2022), "<br>",
+                           "Tendance : ", sprintf("%+.1f", tendance_raboud * 100), " pp"),
+            hovertemplate = "%{text}<extra></extra>"
+          ) |>
+          add_trace(
+            data = fitr, x = ~dim1, y = ~y,
+            type = "scatter", mode = "lines", name = "Régression Raboud 2026",
+            line = list(color = "#8c6bb1", width = 2), hoverinfo = "skip"
+          )
+      }
+    }
+
+    p |> layout(
+      xaxis  = list(title = "Positionnement (Dim.1 ACP — gauche →)"),
+      yaxis  = list(title = "Part du corps électoral", tickformat = ".0%"),
+      legend = list(orientation = "h", y = -0.12)
+    )
   })
 
   # Districts
@@ -561,39 +598,48 @@ server <- function(input, output, session) {
 
   output$p_sieges <- renderPlotly({
     df_long <- dist_levier |>
-      select(district_electoral, sieges_eag_22, sieges_eag_27) |>
-      pivot_longer(c(sieges_eag_22, sieges_eag_27),
+      select(district_electoral, sieges_eag_22, sieges_eag_27, sieges_eag_raboud) |>
+      pivot_longer(c(sieges_eag_22, sieges_eag_27, sieges_eag_raboud),
                    names_to = "annee", values_to = "sieges") |>
       mutate(
-        annee = recode(annee, sieges_eag_22 = "2022", sieges_eag_27 = "2027 (est.)"),
+        annee = recode(annee, sieges_eag_22 = "2022", sieges_eag_27 = "2027 (est.)",
+                       sieges_eag_raboud = "Scénario Raboud CE 2026"),
+        annee = factor(annee, levels = c("2022", "2027 (est.)", "Scénario Raboud CE 2026")),
         district_electoral = fct_reorder(district_electoral, sieges, max)
       )
     plot_ly(df_long, x = ~sieges, y = ~district_electoral, type = "bar",
             orientation = "h", color = ~annee, barmode = "group",
-            colors = c("2022" = "#888", "2027 (est.)" = "#c0392b")) |>
+            colors = c("2022" = "#888", "2027 (est.)" = "#c0392b",
+                       "Scénario Raboud CE 2026" = "#8c6bb1")) |>
       layout(barmode = "group",
              xaxis = list(title = "Sièges EàG"),
              yaxis = list(title = ""),
-             legend = list(title = list(text = "")))
+             legend = list(title = list(text = ""), orientation = "h", y = -0.15))
   })
 
   output$tbl_districts <- renderDT({
     dist_levier |>
+      arrange(desc(score_district)) |>
       mutate(
         part_eag_dist    = paste0(round(part_eag_dist    * 100, 1), " %"),
         part_gauche_dist = paste0(round(part_gauche_dist * 100, 1), " %"),
+        part_raboud_dist = paste0(round(part_raboud_dist * 100, 1), " %"),
         part_manquante   = paste0(round(part_manquante   * 100, 1), " %"),
-        voix_manquantes  = round(voix_manquantes)
+        voix_manquantes  = round(voix_manquantes),
+        score_district   = round(score_district, 2)
       ) |>
-      select(district_electoral, total_valables, votes_eag, part_eag_dist,
-             part_gauche_dist, sieges_2022, sieges_2027,
-             sieges_eag_22, sieges_eag_27, voix_manquantes, part_manquante,
+      select(district_electoral, score_district, total_valables, votes_eag, part_eag_dist,
+             part_raboud_dist, part_gauche_dist, sieges_2022, sieges_2027,
+             sieges_eag_22, sieges_eag_27, sieges_eag_raboud, voix_manquantes, part_manquante,
              statut_district) |>
-      rename(District = district_electoral, Votants = total_valables,
+      rename(District = district_electoral, "Score district" = score_district,
+             Votants = total_valables,
              "Voix EàG" = votes_eag, "Part EàG" = part_eag_dist,
+             "Part Raboud 26" = part_raboud_dist,
              "Part gauche" = part_gauche_dist,
              "Sièges 22" = sieges_2022, "Sièges 27" = sieges_2027,
              "EàG 22" = sieges_eag_22, "EàG 27 (est.)" = sieges_eag_27,
+             "EàG scén. Raboud" = sieges_eag_raboud,
              "Voix manq." = voix_manquantes, "Manquant (%)" = part_manquante,
              Statut = statut_district) |>
       datatable(options = list(dom = "ft", pageLength = 20), rownames = FALSE) |>
@@ -614,8 +660,12 @@ server <- function(input, output, session) {
     plot_ly(df, x = ~score_priorite, y = ~Communes, type = "bar",
             orientation = "h", color = ~profil, colors = PROFIL_PAL,
             text  = ~paste0("<b>", Communes, "</b> — ", district_electoral, "<br>",
-                            "Score : ", round(score_priorite), "<br>",
+                            "Score : ", round(score_priorite, 2), "<br>",
+                            "Part du potentiel du district : ", fmt_pct(part_score_district), "<br>",
                             "EàG 2022 : ", fmt_pct(part_eag_2022), "<br>",
+                            "Raboud CE 2026 : ", ifelse(raboud_couvert, fmt_pct(part_raboud_2026), "—"), "<br>",
+                            "Tendance : ", ifelse(raboud_couvert,
+                                                  paste0(sprintf("%+.1f", tendance_raboud * 100), " pp"), "—"), "<br>",
                             "Résidu : ", round(ecart * 100, 1), " pp<br>",
                             "Effectif : ", fmt_num(effectif)),
             hovertemplate = "%{text}<extra></extra>") |>
@@ -635,18 +685,23 @@ server <- function(input, output, session) {
         particip_moy     = round(particip_moy * 100, 1),
         dim1             = round(dim1, 2),
         ecart            = round(ecart * 100, 1),
-        score_priorite   = round(score_priorite),
+        part_raboud_2026 = ifelse(raboud_couvert, round(part_raboud_2026 * 100, 1), NA),
+        tendance_raboud  = ifelse(raboud_couvert, round(tendance_raboud * 100, 1), NA),
+        score_priorite   = round(score_priorite, 2),
+        part_score_district = round(part_score_district * 100, 1),
         part_eag_cc      = round(part_eag_cc * 100, 1)
       ) |>
       select(Communes, district_electoral, profil,
-             part_eag_2022, part_gauche_2022, part_ps_verts,
+             part_eag_2022, part_raboud_2026, tendance_raboud, part_gauche_2022, part_ps_verts,
              dim1, ecart, particip_moy, effectif, score_priorite,
-             part_eag_cc) |>
+             part_score_district, part_eag_cc) |>
       rename(Commune = Communes, District = district_electoral, Profil = profil,
-             "EàG 22 (%)" = part_eag_2022, "Gauche 22 (%)" = part_gauche_2022,
+             "EàG 22 (%)" = part_eag_2022, "Raboud 26 (%)" = part_raboud_2026,
+             "Tend. (pp)" = tendance_raboud, "Gauche 22 (%)" = part_gauche_2022,
              "PS+V (%)" = part_ps_verts, "Pos." = dim1,
              "Résidu (pp)" = ecart, "Part. (%)" = particip_moy,
              Effectif = effectif, Score = score_priorite,
+             "Part district (%)" = part_score_district,
              "CC EàG (%)" = part_eag_cc) |>
       datatable(filter = "top",
                 options = list(pageLength = 12, scrollX = TRUE),
@@ -683,8 +738,12 @@ server <- function(input, output, session) {
     popup_txt <- paste0(
       "<b>", df$Communes, "</b> (", df$district_electoral, ")<br>",
       "Profil : ", df$profil, "<br>",
-      "Score : ", round(df$score_priorite), "<br>",
+      "Score : ", round(df$score_priorite, 2), "<br>",
+      "Part du potentiel du district : ", fmt_pct(df$part_score_district), "<br>",
       "EàG 2022 : ", fmt_pct(df$part_eag_2022), "<br>",
+      "Raboud CE 2026 : ", ifelse(df$raboud_couvert,
+        paste0(fmt_pct(df$part_raboud_2026), " (",
+               sprintf("%+.1f", df$tendance_raboud * 100), " pp)"), "—"), "<br>",
       "Résidu : ", round(df$ecart * 100, 1), " pp<br>",
       "Voix manquantes : ", df$voix_manquantes, "<br>",
       "Effectif : ", fmt_num(df$effectif)
@@ -712,47 +771,34 @@ server <- function(input, output, session) {
       )
   })
 
-  # Carte leaflet scores
+  # Carte leaflet voix manquantes
   output$v_map <- renderLeaflet({
     df <- communes_limites
-    
+
     if (input$map_color_voix == "voix") {
-      pal <- colorNumeric(
-        "YlOrRd", domain = log1p(df$voix_manquantes), na.color = "#cccccc"
-      )
-      fill_col      <- pal(log1p(df$voix_manquantes))
-      legend_pal    <- pal
-      legend_values <- log1p(df$voix_manquantes)
-      legend_title  <- "Voix (nombre absolu)"
+      metric        <- df$voix_manquantes
+      legend_title  <- "Voix manquantes (nombre absolu)"
     } else {
-      pal <- colorNumeric(
-        "YlOrRd", domain = log1p(df$part_manquante), na.color = "#cccccc"
-      )
-      fill_col      <- pal(log1p(df$part_manquante))
-      legend_pal    <- pal
-      legend_values <- log1p(df$part_manquante)
-      legend_title  <- "Voix (part manquante)"
+      metric        <- df$part_manquante
+      legend_title  <- "Voix manquantes (part du total)"
     }
-    
-    pal <- colorNumeric(
-      "YlOrRd", domain = log1p(df$voix_manquantes), na.color = "#cccccc"
-    )
-    fill_col      <- pal(log1p(df$voix_manquantes))
+
+    pal           <- colorNumeric("YlOrRd", domain = log1p(metric), na.color = "#cccccc")
+    fill_col      <- pal(log1p(metric))
     legend_pal    <- pal
-    legend_values <- log1p(df$voix_manquantes)
-    legend_title  <- "Score"
-    
+    legend_values <- log1p(metric)
+
     popup_txt <- paste0(
       "<b>", df$Communes, "</b> (", df$district_electoral, ")<br>",
       "Profil : ", df$profil, "<br>",
-      "Score : ", round(df$score_priorite), "<br>",
+      "Score : ", round(df$score_priorite, 2), "<br>",
       "EàG 2022 : ", fmt_pct(df$part_eag_2022), "<br>",
       "Résidu : ", round(df$ecart * 100, 1), " pp<br>",
       "Voix manquantes : ", df$voix_manquantes, "<br>",
-      "Part manquantes : ", df$part_manquantes, "<br>",
+      "Part manquante : ", fmt_pct(df$part_manquante), "<br>",
       "Effectif : ", fmt_num(df$effectif)
     )
-    
+
     leaflet(df) |>
       addProviderTiles(providers$CartoDB.Positron) |>
       addPolygons(
@@ -768,13 +814,13 @@ server <- function(input, output, session) {
       addLegend(
         position = "bottomright", pal = legend_pal, values = legend_values,
         title = legend_title, opacity = 0.85,
-        labFormat = if (input$map_color == "score_priorite")
+        labFormat = if (input$map_color_voix == "voix")
           labelFormat(transform = function(x) round(expm1(x)))
         else
-          labelFormat()
+          labelFormat(suffix = " %", transform = function(x) round(expm1(x) * 100, 1))
       )
   })
-  
+
   # Méthodologie
   output$ui_methodo <- renderUI({
     div(class = "d-flex flex-column gap-4 py-1",
@@ -784,19 +830,33 @@ server <- function(input, output, session) {
 
       # Score
       div(class = "border rounded p-3",
-        h5(class = "fw-bold mb-3", "Le score de priorité"),
-        p("Chaque commune reçoit un score qui combine trois facteurs :"),
+        h5(class = "fw-bold mb-3", "Le score de priorité — un calcul en deux couches"),
+        p("Les sièges du Grand Conseil sont attribués ", strong("par district électoral"),
+          " (méthode Hagenbach-Bischoff). Le rendement d'un effort de campagne se décide donc d'abord ",
+          "au niveau du district, et seulement ensuite au niveau de la commune."),
+        tags$ol(class = "mb-2",
+          tags$li(strong("Score de district (couche 1) : "),
+            "on additionne le potentiel de progression de toutes les communes du district ",
+            "(marge de progression × effectif), puis on multiplie par le ", strong("levier siège"),
+            " (1 / voix manquantes pour le prochain siège). Ce score classe les districts ",
+            "— voir le graphique « Priorité par district »."),
+          tags$li(strong("Score de commune (couche 2) : "),
+            "à l'intérieur d'un district, chaque commune reçoit la part du potentiel du district ",
+            "qu'elle représente (sa marge de progression × son effectif). ",
+            "La colonne « Part district » du tableau indique ce poids relatif.")),
         tags$ul(class = "mb-2",
           tags$li(strong("Marge de progression :"),
-            " la commune vote-t-elle plus à gauche que ce qu'EàG y a obtenu en 2022 ? ",
-            "Un résidu négatif dans le graphique « Écart de conversion » signale un potentiel non capté."),
+            " le plus fort de deux signaux — (a) la commune vote plus à gauche que ce qu'EàG y a obtenu en 2022 ",
+            "(résidu négatif dans « Écart de conversion ») ; (b) Raboud, au Conseil d'État 2026, y a rassemblé ",
+            "nettement plus de voix que la liste EàG en 2022. ",
+            "Le second signal capte les communes où EàG a déjà démontré une portée que son score de liste ne reflète pas."),
           tags$li(strong("Levier siège :"),
             " combien de voix manquent à EàG pour décrocher le prochain siège dans ce district ? ",
             "Plus ce nombre est faible, plus chaque vote supplémentaire compte."),
           tags$li(strong("Effectif électoral :"),
             " combien d'électeurs sont dans la commune ? Une grande commune contribue davantage au total du district.")),
         div(class = "bg-light rounded p-2 text-center font-monospace small",
-          "score  =  marge de progression  ×  (1 / voix manquantes)  ×  effectif"),
+          "score commune  =  marge de progression  ×  (1 / voix manquantes)  ×  effectif"),
         p(class = "text-muted small mt-2 mb-0",
           "En district de consolidation (EàG déjà représentée), la marge est remplacée par ",
           "max(marge, part EàG 2022) pour valoriser aussi la défense des votes acquis.")),
@@ -859,9 +919,13 @@ server <- function(input, output, session) {
       div(class = "alert mb-0", style = "background:#fff8e1; border-left: 4px solid #f0a500;",
         h6(class = "fw-bold", "Points d'attention"),
         tags$ul(class = "mb-0 small",
-          tags$li(strong("Référence 2022. "),
-            "Le score compare la situation actuelle (votations 2025–2026) à la performance EàG de 2022. ",
-            "Une commune avec un fort résidu négatif est peut-être déjà en train de progresser depuis 2022 — le graphique CE 2026 permet de le vérifier."),
+          tags$li(strong("Deux références électorales. "),
+            "Le score s'appuie sur la liste EàG au GC 2022 et sur Raboud au Conseil d'État 2026. ",
+            "La seconde n'existe que pour les 153 communes où la liste da. a été déposée ; ailleurs, seul le signal 2022 joue."),
+          tags$li(strong("CE 2026 = plafond, pas prédiction. "),
+            "L'élection au Conseil d'État est majoritaire avec panachage : le score de Raboud inclut des voix PS/Verts ",
+            "qui ne se reporteront pas mécaniquement sur une liste EàG au GC. Le paramètre ", tags$code("RABOUD_ESCOMPTE"),
+            " dans ", tags$code("analyse.R"), " permet d'escompter ce plafond."),
           tags$li(strong("Vote sur enjeux ≠ vote de liste. "),
             "L'indice de positionnement reflète les votations, pas directement le vote Grand Conseil. Une commune à gauche sur les enjeux ne vote pas forcément EàG."),
           tags$li(strong("Niveau géographique. "),

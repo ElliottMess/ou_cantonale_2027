@@ -27,6 +27,14 @@ SEUIL_NA <- 0.3
 # soit considéré atteignable. Au-delà, les ressources sont mieux investies ailleurs.
 SEUIL_ATTEIGNABLE <- 0.12
 
+# Résultat Raboud Sidorenko (EàG) au Conseil d'État, mars 2026 — indicateur
+# le plus récent et le plus direct de la portée électorale d'EàG (§3.2, §4 du README).
+# L'élection au CE est majoritaire avec panachage : le score de Raboud inclut des
+# voix PS/Verts qui ne se reporteront pas forcément sur une liste EàG au GC.
+# RABOUD_ESCOMPTE escompte ce « plafond » avant de l'injecter dans la marge de
+# progression (1 = aucun escompte, 0 = on ignore Raboud).
+RABOUD_ESCOMPTE <- 1.0
+
 
 # ── FONCTIONS : ATTRIBUTION DES MANDATS (Art. 46 / 46a LEDP) ─
 # Les sièges sont attribués aux arrondissements sur la base de la POPULATION
@@ -183,8 +191,16 @@ votes_listes <- elections %>%
   pivot_wider(names_from = votation, values_from = OUI,
               values_fill = 0)   # parti absent = 0 voix
 
+# Résultat Raboud (EàG) au CE 2026 : voix par commune sur la même base
+# d'effectif que 2022. Liste da. absente → 0 voix (vrai zéro, README §3.2) ;
+# `raboud_couvert` garde la trace des 153 communes réellement contestées.
+raboud_2026 <- raw %>%
+  filter(votation == "vdce_2026_eag") %>%
+  distinct(code_ofs, raboud_oui = OUI)
+
 ref_2022 <- effectifs_commune %>%
   left_join(votes_listes, by = c("Communes", "code_ofs")) %>%
+  left_join(raboud_2026,  by = "code_ofs") %>%
   mutate(
     # Part EàG : performance propre du parti, base de la régression
     votes_eag     = rowSums(across(all_of(LISTE_EAG)),na.rm = TRUE),
@@ -193,20 +209,31 @@ ref_2022 <- effectifs_commune %>%
     votes_gauche  = rowSums(across(all_of(LISTES_GAUCHE_PROFIL)), na.rm = TRUE),
     part_gauche_2022 = votes_gauche / effectif,
     # Réservoir PS + Verts : potentiel de report vers EàG
-    part_ps_verts    = part_gauche_2022 - part_eag_2022
+    part_ps_verts    = part_gauche_2022 - part_eag_2022,
+    # Portée EàG au CE 2026 (Raboud) et tendance depuis 2022
+    raboud_couvert   = !is.na(raboud_oui),
+    part_raboud_2026 = coalesce(raboud_oui, 0) / effectif,
+    tendance_raboud  = part_raboud_2026 - part_eag_2022
   ) %>%
   select(Communes, code_ofs, district, district_electoral,
-         effectif, part_eag_2022, part_gauche_2022, part_ps_verts)
+         effectif, part_eag_2022, part_gauche_2022, part_ps_verts,
+         raboud_couvert, part_raboud_2026, tendance_raboud)
 
-cat(sprintf("\nRéférence 2022 : %d communes\n", nrow(ref_2022)))
+cat(sprintf("\nRéférence 2022 : %d communes (dont %d avec résultat Raboud CE 2026)\n",
+            nrow(ref_2022), sum(ref_2022$raboud_couvert)))
 
 
 # ── 4. MATRICE DE VOTATIONS POUR L'ACP ──────────────────────
 # Exclure : contre-projets (_cp), questions subsidiaires (_sub)
 # Conserver une observation par paquet thématique (initiative principale).
+#
+# L'ACP mesure le POSITIONNEMENT sur enjeux : elle ne retient que des scrutins
+# d'objet (initiatives / lois). Le résultat Raboud au CE 2026 est une PERFORMANCE
+# électorale, pas une prise de position — il est traité séparément (§7), comme
+# la référence 2022, et n'entre pas dans l'axe gauche-droite.
 
 votations_retenues <- dict_vot %>%
-  filter(type %in% c("initiative", "loi") | votation %in% c("vdce_2026_eag"))
+  filter(type %in% c("initiative", "loi"))
 
 # Orientation : valeur élevée = plus à gauche (§3.1 du README)
 vot_orient <- raw %>%
@@ -230,11 +257,6 @@ cols_vot <- setdiff(names(mat_wide),
 
 cat(sprintf("Votations dans l'ACP (%d) : %s\n", length(cols_vot),
             paste(cols_vot, collapse = ", ")))
-
-# vdce_2026_eag : communes non couvertes par la liste da. = 0 voix Raboud
-# (les valeurs manquantes sont des vrais zéros, pas des données absentes — §3.2)
-if ("vdce_2026_eag" %in% cols_vot)
-  mat_wide$vdce_2026_eag[is.na(mat_wide$vdce_2026_eag)] <- 0
 
 # Éliminer les communes avec trop de données manquantes
 n_na_par_commune <- rowSums(is.na(mat_wide[cols_vot]))
@@ -301,7 +323,8 @@ communes <- mat_complete %>%
   left_join(dim1, by = "Communes") %>%
   left_join(
     ref_2022 %>% select(Communes, code_ofs, effectif,
-                       part_eag_2022, part_gauche_2022, part_ps_verts),
+                       part_eag_2022, part_gauche_2022, part_ps_verts,
+                       raboud_couvert, part_raboud_2026, tendance_raboud),
     by = c("Communes", "code_ofs")
   ) %>%
   left_join(particip_moy, by = c("Communes", "code_ofs")) %>%
@@ -317,8 +340,20 @@ m_ecart_2022_dim1 <- lm(part_eag_2022 ~ dim1, weights = effectif, data = commune
               na.action = na.exclude)
 communes$ecart <- resid(m_ecart_2022_dim1)   # na.exclude conserve les NA en position
 
-cat(sprintf("\nR² positionnement → vote EàG : %.3f\n",
+cat(sprintf("\nR² positionnement → vote EàG (2022) : %.3f\n",
             summary(m_ecart_2022_dim1)$r.squared))
+
+# Second point de référence : le CE 2026 (Raboud). Même régression sur les
+# communes réellement contestées → où EàG, via sa candidate la plus forte,
+# dépasse déjà nettement son score de liste 2022 (marge démontrée, §9).
+m_ecart_raboud <- lm(part_raboud_2026 ~ dim1, weights = effectif,
+                     data = communes %>% filter(raboud_couvert),
+                     na.action = na.exclude)
+cat(sprintf("R² positionnement → vote Raboud (CE 2026, %d communes) : %.3f\n",
+            sum(communes$raboud_couvert, na.rm = TRUE),
+            summary(m_ecart_raboud)$r.squared))
+cat(sprintf("Tendance Raboud − EàG 2022 (médiane, communes contestées) : %+.1f pp\n",
+            100 * median(communes$tendance_raboud[communes$raboud_couvert], na.rm = TRUE)))
 
 
 # ── 8. LEVIER SIÈGE PAR DISTRICT (§5 du README) ─────────────
@@ -343,15 +378,26 @@ dist_votes <- raw %>%
   ) %>%
   left_join(sieges_ref, by = "district_electoral")
 
+# Voix Raboud (CE 2026) agrégées par district — scénario « portée EàG démontrée »
+raboud_dist <- raw %>%
+  filter(votation == "vdce_2026_eag") %>%
+  group_by(district_electoral) %>%
+  summarise(votes_raboud = sum(OUI, na.rm = TRUE), .groups = "drop")
+
 dist_levier <- dist_votes %>%
+  left_join(raboud_dist, by = "district_electoral") %>%
   mutate(
+    votes_raboud     = coalesce(votes_raboud, 0),
     part_eag_dist    = votes_eag / total_valables,
     part_gauche_dist = votes_gauche / total_valables,
+    part_raboud_dist = votes_raboud / total_valables,
     # Quota HB par liste EàG (sièges attribués par liste, pas en bloc)
     quota_hb         = total_valables / (sieges_2027 + 1),
     quota_hb_22      = total_valables / (sieges_2022 + 1),
     sieges_eag_22    = floor(votes_eag / quota_hb_22),
     sieges_eag_27    = floor(votes_eag / quota_hb),
+    # Scénario : sièges qu'EàG obtiendrait à un niveau de soutien « Raboud CE 2026 »
+    sieges_eag_raboud = floor(votes_raboud / quota_hb),
     voix_manquantes  = quota_hb * (sieges_eag_27 + 1) - votes_eag,
     part_manquante   = voix_manquantes / total_valables,
     levier           = 1 / voix_manquantes,
@@ -361,9 +407,9 @@ dist_levier <- dist_votes %>%
       TRUE                               ~ "hors_portee"
     )
   ) %>%
-  select(district_electoral, total_valables, votes_eag, votes_gauche,
-         part_eag_dist, part_gauche_dist,
-         sieges_2022, sieges_2027, sieges_eag_22, sieges_eag_27,
+  select(district_electoral, total_valables, votes_eag, votes_gauche, votes_raboud,
+         part_eag_dist, part_gauche_dist, part_raboud_dist,
+         sieges_2022, sieges_2027, sieges_eag_22, sieges_eag_27, sieges_eag_raboud,
          voix_manquantes, part_manquante, levier, statut_district)
 
 cat("\n── Analyse par district electoral ──\n")
@@ -392,8 +438,13 @@ communes <- communes %>%
   ) %>%
   filter(statut_district != "hors_portee") %>%
   mutate(
-    # Potentiel brut : fort positionnement gauche ET sous-conversion
-    marge_progression = pmax(0, -ecart),
+    # Marge issue du positionnement : EàG sous-convertit son profil politique 2022
+    marge_ecart  = pmax(0, -ecart),
+    # Marge démontrée par Raboud au CE 2026 : soutien EàG déjà atteint au-dessus
+    # du score de liste 2022, escompté du panachage (RABOUD_ESCOMPTE, §0).
+    marge_raboud = pmax(0, coalesce(tendance_raboud, 0)) * RABOUD_ESCOMPTE,
+    # Marge de progression = le meilleur des deux signaux (§7 du README)
+    marge_progression = pmax(marge_ecart, marge_raboud),
     # Consolidation : défendre les votes acquis a la même valeur que progresser
     potentiel_commune = case_when(
       statut_district == "consolidation" ~ pmax(marge_progression, part_eag_2022),
@@ -428,6 +479,11 @@ communes <- communes %>%
 seuil_dim1    <- median(communes$dim1,       na.rm = TRUE)
 seuil_particip <- median(communes$particip_moy, na.rm = TRUE)
 
+# Raboud a surperformé la liste 2022 d'environ +8 pp partout (effet « candidate
+# forte + panachage »). Pour le profil, on ne retient comme persuasion que les
+# communes où la marge démontrée dépasse nettement ce socle systémique.
+seuil_raboud <- median(communes$tendance_raboud[communes$raboud_couvert], na.rm = TRUE)
+
 communes <- communes %>%
   mutate(
     profil = case_when(
@@ -435,6 +491,10 @@ communes <- communes %>%
       !is.na(part_eag_cc) & part_eag_cc > 0                  ~ "consolidation",
       dim1 > seuil_dim1 & particip_moy < seuil_particip       ~ "mobilisation",
       dim1 <= seuil_dim1 & ecart < 0                          ~ "persuasion",
+      # Raboud (CE 2026) a démontré un soutien EàG nettement au-delà de la liste
+      # 2022 ET au-delà du socle systémique (~+8 pp) : électeurs à convaincre
+      # présents, quel que soit le positionnement sur enjeux.
+      marge_raboud > marge_ecart & tendance_raboud >= seuil_raboud ~ "persuasion",
       TRUE                                                     ~ "autre"
     )
   )
@@ -482,7 +542,6 @@ p_biplot <- fviz_pca_biplot(
   gradient.cols = c("#2166ac", "#f7f7f7", "#d6604d"),
   title     = "ACP — Positionnement politique des communes vaudoises"
 )
-ggsave("data/processed/pca_biplot.pdf", p_biplot, width = 12, height = 9)
 
 # Scatter positionnement vs vote gauche (avec résidus colorés)
 p_ecart <- ggplot(communes, aes(x = dim1, y = part_eag_2022)) +
@@ -500,7 +559,6 @@ p_ecart <- ggplot(communes, aes(x = dim1, y = part_eag_2022)) +
     title = "Écart entre positionnement et vote effectif"
   ) +
   theme_minimal(base_size = 12)
-ggsave("data/processed/ecart_conversion.pdf", p_ecart, width = 11, height = 8)
 
 # Score de priorité par district
 p_scores <- communes %>%
@@ -516,8 +574,6 @@ p_scores <- communes %>%
        title = "Potentiel par district et profil d'action",
        fill = NULL) +
   theme_minimal(base_size = 12)
-ggsave("data/processed/scores_district.pdf", p_scores, width = 10, height = 7)
 
 cat("\nFichiers écrits dans data/processed/\n")
 cat("  communes_scores.csv\n  districts_levier.csv\n")
-cat("  pca_biplot.pdf  ecart_conversion.pdf  scores_district.pdf\n")
