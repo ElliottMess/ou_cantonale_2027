@@ -6,6 +6,5 @@
 *.Rproj
 *.Rdata
 *.pdf
-*.gpkg
 # Cache des limites simplifiées, reconstruit par app.R
 data/processed/limites_vaud.rds
