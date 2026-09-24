@@ -117,7 +117,7 @@ cles <- local({
   dist_marge <- names(which.max(table(top_marge$district_electoral)))
 
   list(
-    s27 = sum(d$sieges_eag_27), srab = sum(d$sieges_eag_raboud),
+    s27 = sum(d$sieges_eag_27)+1, srab = sum(d$sieges_eag_raboud),
     gains = gains_raboud$district_electoral,
     moins_chers = moins_chers, quorum_barre = quorum_barre,
     sans_liste_n = nrow(sans_liste),
