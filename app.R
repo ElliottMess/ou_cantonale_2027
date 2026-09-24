@@ -284,10 +284,17 @@ ui <- page_fluid(
 
   # ── En-tête ─────────────────────────────────────────────────
   div(
-    class = "py-3 mb-3 border-bottom",
+    class = "py-3 mb-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2",
     style = "border-color: #c0392b !important",
     h3(class = "mb-0 fw-bold", style = "color:#c0392b",
-       "EàG — Ciblage communes, Cantonales Vaud 2027")
+       "EàG — Ciblage communes, Cantonales Vaud 2027"),
+    tags$a(
+      href   = "https://github.com/ElliottMess/ou_cantonale_2027",
+      target = "_blank", rel = "noopener",
+      class  = "badge rounded-pill text-bg-dark text-decoration-none fs-6",
+      title  = "Code source sur GitHub",
+      icon("github"), " GitHub"
+    )
   ),
   # ── Guide d'utilisation ──────────────────────────────────────
   card(
