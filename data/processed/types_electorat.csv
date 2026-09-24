@@ -1,0 +1,6 @@
+cluster,n,gauche,reservoir,particip,raboud,rang_gauche,bloc,ecart_particip,trait,type_electorat,a_gauche,message_cle
+4,30,1.8266995066257625,0.3756910888029391,0.5992952015953041,0.07635921058126052,1,Gauche marquée,0.056641026641896186, mobilisé,1. Gauche marquée mobilisé,TRUE,Gauche implantée où EàG a déjà fait ses preuves — incarner et consolider
+5,87,1.5483050640152978,0.3855857097646586,0.49642016612055456,0.07009813990772444,2,Gauche marquée,-0.04623400883285339, abstentionniste,2. Gauche marquée abstentionniste,TRUE,Électorat acquis qui ne se déplace pas — priorité absolue au « faire voter »
+2,97,-0.28448054862536915,0.28091883425873193,0.5731640657003447,0.054995641351233145,3,Centre,0.030509890746936774, mobilisé,3. Centre mobilisé,FALSE,Commune disputée où EàG perce déjà — porte-à-porte et présence publique
+3,24,-0.65400762573675,0.27418386067430356,0.5314832982136504,0.04684533963867029,4,Centre,-0.011170876739757585,,4. Centre,FALSE,"Commune disputée, réservoir réel — thèmes sociaux concrets, pas d'étiquette"
+1,62,-2.3582698311897223,0.22214009827088807,0.5250405547324623,0.04619034730022105,5,Droite,-0.017613620220945703,,5. Droite,FALSE,"Terrain difficile — présence, visibilité, et d'abord déposer une liste"

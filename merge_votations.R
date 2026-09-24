@@ -229,52 +229,77 @@ build_ofs_district_map <- function() {
 
 ofs_district <- build_ofs_district_map()
 
-# VDCE xlsx columns
-parse_vdce_raboud <- function(fname, date, ref_district = pop_vd_25) {
+# VDCE20260308.xlsx : une ligne par commune (300), en-tête sur 1 ligne.
+# Layout : Arrondissement | No OFS | Commune | Électeurs | Bulletins | Nuls |
+#          Valables | Blancs | Participation | <1 colonne par candidat> | Éparses
+# Les colonnes candidats contiennent des nombres de voix absolus ; elles sont
+# repérées par le nom de famille figurant dans l'en-tête, donc insensibles à
+# l'ordre des candidats. Contrôle : les voix concordent commune par commune
+# avec VDCE20260308-VD-bulletins.xlsx (152 des 153 communes communes aux deux
+# fichiers ; Nyon est tronquée dans l'ancien) et le total colonne par colonne
+# boucle — Nordmann + Raboud + Thuillard + éparses + blancs = valables.
+VDCE_COLS <- c("arrondissement", "ofs", "commune", "electeurs", "bulletins",
+               "nuls", "valables", "blancs", "participation")
+
+parse_vdce <- function(fname, date, ref_district = pop_vd_25) {
   candidats_CE_26 <- tibble(
-    nom = c("Nordmann", "Thuillard", "Raboud"),
-    pos = c("centre-gauche", "extreme-droite", "gauche"),
+    nom   = c("Nordmann", "Thuillard", "Raboud"),
+    pos   = c("centre-gauche", "extreme-droite", "gauche"),
     liste = c("PS", "Alliance VD", "EàG")
   )
-  
-  cand_name <- unique(candidats_CE_26$nom)
-  
-  raw  <- suppressMessages(read_excel(here::here(raw_dir, fname),
-                                       col_names = c("ofs", "commune", "nb_bulletin", cand_name, "eparses"), .name_repair = "minimal"))
-  data <- raw[-1L, ]%>%   # 1 header row
-    mutate(nb_bulletin = safe_int(nb_bulletin),
-           ofs = safe_int(ofs),
-           across(c(all_of(cand_name), "eparses"), ~safe_int(.x)*safe_int(nb_bulletin)))%>%
-    pivot_longer(c(all_of(cand_name), "eparses"), names_to = "candidat", values_to = "votes")%>%
-    group_by(ofs, commune, candidat) %>%
-    summarise(
-      nb_bulletin = sum(nb_bulletin),
-      value       = sum(votes),
-      .groups     = "drop"
-    )%>%
-    left_join(candidats_CE_26, by = c("candidat" = "nom"))%>%
-    filter(candidat != "eparses")
+  cand_name <- candidats_CE_26$nom
+  path      <- here::here(raw_dir, fname)
 
-  data <- data |>
-    left_join(select(ref_district, -population, - commune), by = c("ofs" = "num_ofs"))%>%
+  # Repérage des colonnes candidats par nom de famille dans l'en-tête
+  hdr     <- suppressMessages(read_excel(path, col_names = FALSE, n_max = 1,
+                                         .name_repair = "minimal"))
+  hdr     <- trimws(as.character(unlist(hdr[1, ])))
+  cand_ix <- vapply(cand_name, function(n) {
+    j <- which(str_detect(hdr, fixed(n)))
+    if (length(j) == 1L) j else NA_integer_
+  }, integer(1L))
+  if (anyNA(cand_ix))
+    stop("VDCE — candidat(s) introuvable(s) ou ambigu(s) dans l'en-tête de ",
+         fname, " : ", paste(cand_name[is.na(cand_ix)], collapse = ", "))
+  if (any(cand_ix <= length(VDCE_COLS)))
+    stop("VDCE — colonnes candidats en collision avec les colonnes fixes dans ",
+         fname)
+
+  col_names                       <- paste0("col", seq_along(hdr))
+  col_names[seq_along(VDCE_COLS)] <- VDCE_COLS
+  col_names[cand_ix]              <- cand_name
+
+  raw <- suppressMessages(read_excel(path, col_names = col_names, skip = 1L,
+                                     .name_repair = "minimal"))
+
+  data <- raw %>%
+    mutate(commune = trimws(as.character(commune)),
+           ofs     = safe_int(ofs)) %>%
+    filter(ofs > 0L, !commune %in% SKIP) %>%
+    mutate(across(c(all_of(cand_name), "electeurs", "bulletins", "nuls",
+                    "valables", "blancs"), safe_int)) %>%
+    pivot_longer(all_of(cand_name), names_to = "candidat", values_to = "votes") %>%
+    left_join(candidats_CE_26, by = c("candidat" = "nom")) %>%
+    left_join(select(ref_district, -population, -commune),
+              by = c("ofs" = "num_ofs")) %>%
     mutate(district = map2_chr(.data$district, .data$commune, resolve_district))
 
   unmapped <- unique(data$ofs[is.na(data$district)])
-  if (length(unmapped)){
+  if (length(unmapped)) {
     message("VDCE — OFS codes sans correspondance district : ",
             paste(sort(unmapped), collapse = ", "))
   }
-  
-  data |>
-    filter(!is.na(.data$district)) |>
-    pmap_dfr(\(ofs, candidat, nb_bulletin, value, pos, district, commune, ...) {
+
+  data %>%
+    filter(!is.na(.data$district)) %>%
+    pmap_dfr(\(ofs, commune, district, candidat, pos, votes,
+               electeurs, bulletins, nuls, valables, blancs, ...) {
       make_row(
         paste0("vdce_2026_", tolower(candidat)), date, pos,
         district, commune, ofs,
-        NA, nb_bulletin, 0L, nb_bulletin, 0L, value, nb_bulletin - value
+        electeurs, bulletins, blancs, valables, nuls, votes, valables - votes
       )
-    }) %>% 
-      mutate(particip_perc = as_int(particip_perc))
+    })
 }
 
 # ── Conseils communaux 2026 ───────────────────────────────────────────────────
@@ -369,8 +394,13 @@ parse_grand_conseil <- function(subdir, date, col_names = NULL,
       )
     if (nrow(cand) == 0L) next
 
-    n_seats <- sieges_vd$sieges_2022[sieges_vd$district_csv == district]
+    # Le titre du xlsx porte le nom historique de l'arrondissement (p. ex. "Vevey") ;
+    # on le normalise via le référentiel avant de chercher le nombre de sièges.
     true_district <- resolve_district(district, cand$commune[1])
+    n_seats       <- sieges_vd$sieges_2022[sieges_vd$district_csv == true_district]
+    if (length(n_seats) != 1L)
+      stop("Grand Conseil — arrondissement sans sièges_2022 dans vd_sieges_districts.csv : ",
+           true_district, " (fichier ", basename(fpath), ")")
     
     cand <- mutate(cand, bloc = vapply(liste, gc_bloc, character(1L)))
     all_unmapped <- unique(c(all_unmapped, cand$liste[cand$bloc == "autre"]))
@@ -399,7 +429,7 @@ parse_grand_conseil <- function(subdir, date, col_names = NULL,
         oui <- round(if (length(v) > 0L) v / n_seats else 0)
         all_rows[[length(all_rows) + 1L]] <- make_row(
           paste0("gc_2022_", bloc), date, GC_POSITION[bloc],
-          district, com, oc,
+          true_district, com, oc,
           NA, bul,valables = bul, 0L, 0L, oui, bul - oui
         )
       }
@@ -411,6 +441,75 @@ parse_grand_conseil <- function(subdir, date, col_names = NULL,
             paste(sort(all_unmapped), collapse = ", "))
   bind_rows(all_rows) %>% 
     mutate(particip_perc = as_int(particip_perc))
+}
+
+# ── Contrôle de complétude des communes ──────────────────────────────────────
+# Tous les scrutins cantonaux et fédéraux doivent couvrir les 300 communes
+# vaudoises de vd_pop_2025.csv. Seules les communales (`cc_*`) sont partielles
+# (6 communes, cf. README §3.2) et sont donc exclues du contrôle.
+# Signale aussi les doublons, les codes OFS inconnus et les OFS manquants.
+check_communes <- function(df, ref = pop_vd_25, exclude = "^cc_") {
+  ref_ofs <- sort(unique(ref$num_ofs))
+  ref_nom <- setNames(as.character(ref$commune), as.character(ref$num_ofs))
+
+  scrutins <- df %>% filter(!str_detect(votation, exclude))
+  problemes <- character()
+
+  # 1. Lignes sans code OFS exploitable
+  sans_ofs <- scrutins %>% filter(is.na(code_ofs)) %>% distinct(votation, Communes)
+  if (nrow(sans_ofs)) {
+    problemes <- c(problemes, sprintf("%d ligne(s) sans code OFS", nrow(sans_ofs)))
+    message("Complétude — communes sans code OFS :\n  ",
+            paste(sprintf("%s: %s", sans_ofs$votation, sans_ofs$Communes),
+                  collapse = "\n  "))
+  }
+
+  presents <- scrutins %>% filter(!is.na(code_ofs)) %>% distinct(votation, code_ofs)
+
+  # 2. Communes manquantes par scrutin
+  attendu <- tidyr::expand_grid(votation = sort(unique(presents$votation)),
+                                code_ofs = ref_ofs)
+  manquants <- anti_join(attendu, presents, by = c("votation", "code_ofs"))
+  if (nrow(manquants)) {
+    problemes <- c(problemes, sprintf("%d commune(s) manquante(s)", nrow(manquants)))
+    manquants %>%
+      group_by(votation) %>%
+      summarise(n = n(),
+                communes = paste(ref_nom[as.character(code_ofs)], collapse = ", "),
+                .groups = "drop") %>%
+      pwalk(\(votation, n, communes)
+            message(sprintf("Complétude — %s : %d commune(s) manquante(s) : %s",
+                            votation, n, communes)))
+  }
+
+  # 3. Codes OFS hors référentiel
+  intrus <- presents %>% filter(!code_ofs %in% ref_ofs)
+  if (nrow(intrus)) {
+    problemes <- c(problemes, sprintf("%d code(s) OFS inconnu(s)", nrow(intrus)))
+    message("Complétude — codes OFS hors vd_pop_2025 :\n  ",
+            paste(sprintf("%s: %s", intrus$votation, intrus$code_ofs),
+                  collapse = "\n  "))
+  }
+
+  # 4. Doublons commune × scrutin
+  doublons <- scrutins %>%
+    filter(!is.na(code_ofs)) %>%
+    count(votation, code_ofs) %>%
+    filter(n > 1L)
+  if (nrow(doublons)) {
+    problemes <- c(problemes, sprintf("%d doublon(s) commune × scrutin", nrow(doublons)))
+    message("Complétude — doublons :\n  ",
+            paste(sprintf("%s: %s (%d fois)", doublons$votation,
+                          ref_nom[as.character(doublons$code_ofs)], doublons$n),
+                  collapse = "\n  "))
+  }
+
+  if (length(problemes))
+    stop("Contrôle de complétude échoué — ", paste(problemes, collapse = " ; "))
+
+  message(sprintf("Complétude OK — %d scrutins × %d communes (hors %s).",
+                  n_distinct(presents$votation), length(ref_ofs), exclude))
+  invisible(df)
 }
 
 # ── Assemblage (ordre chronologique) ─────────────────────────────────────────
@@ -427,7 +526,8 @@ message("Votations 30.11.25...")
 rows_avnr  <- parse_chvo("CHVO20251130-02.xlsx", "30.11.25",
                  "init_avenir", "gauche")
 message("Conseil d'État 08.03.26...")
-rows_ce    <- parse_vdce_raboud("VDCE20260308-VD-bulletins.xlsx", "08.03.26")
+rows_ce    <- parse_vdce("VDCE20260308.xlsx", "08.03.26")
+
 rows_cc    <- parse_cc_eag(2026L, "08.03.26")
 message("Votations 14.06.26...")
 rows_dur   <- parse_chvo("CHVO20260614-01.xlsx", "14.06.26",
@@ -443,6 +543,9 @@ rows_sml   <- parse_vdvo_complex("VDVO20260614-02.xlsx", "14.06.26",
 
 all_rows <- bind_rows(rows_gc, rows_mort, rows_dpe, rows_avnr,
                       rows_ce, rows_cc, rows_dur, rows_sc, rows_smc, rows_sml)
+
+message("Contrôle de complétude des communes...")
+check_communes(all_rows)
 
 # ── Écriture data_votations_vd.csv ───────────────────────────────────────────
 COLS <- c("votation", "date", "positionnement_politique_oui", "district",
