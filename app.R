@@ -224,9 +224,9 @@ DMAP_METRIQUES <- list(
   voix_siege           = list(lab = "Voix pour un siège",             fmt = "num", inverse = TRUE),
   voix_quorum          = list(lab = "Voix pour le quorum 5 %",        fmt = "num", inverse = TRUE),
   sieges_eag_27        = list(lab = "Sièges EàG 2027 (est.)",         fmt = "num"),
-  sieges_eag_raboud    = list(lab = "Sièges EàG — scénario Raboud",   fmt = "num"),
+  sieges_eag_raboud    = list(lab = "Sièges EàG — scénario Raboud Sidorenko",   fmt = "num"),
   part_eag_dist        = list(lab = "Part EàG GC 2022",               fmt = "pct"),
-  part_raboud_dist     = list(lab = "Part Raboud CE 2026",            fmt = "pct"),
+  part_raboud_dist     = list(lab = "Part Raboud Sidorenko CE 2026",            fmt = "pct"),
   statut_district      = list(lab = "Statut",                         fmt = "cat")
 )
 fmt_metrique <- function(x, fmt) {
@@ -314,7 +314,7 @@ ui <- page_fluid(
           p(class = "small mb-1",
             "La ", strong("marge de progression"), " retient le plus fort des signaux disponibles : ",
             "sous-conversion du positionnement (là où EàG avait une liste en 2022), ",
-            "portée démontrée par Raboud au CE 2026, ou réservoir PS/Verts inexploité."),
+            "portée démontrée par Raboud Sidorenko au CE 2026, ou réservoir PS/Verts inexploité."),
           div(class = "bg-light rounded p-2 text-center font-monospace small",
             "score marge  =  marge × 1000 / voix pour un siège", tags$br(),
             "score volume ≈ score marge × effectif / 1000"),
@@ -353,7 +353,7 @@ ui <- page_fluid(
             tags$li(strong("EàG n'avait de liste que dans 7 arrondissements sur 13 en 2022."),
                     " Ailleurs, 0 % n'est pas une contre-performance : c'est une absence. Le résidu n'y est pas calculé."),
             tags$li("Chaque part est rapportée à sa propre base de bulletins : le CE 2026 a compté ~1,6× plus de bulletins que le GC 2022."),
-            tags$li("Le CE 2026 est majoritaire avec panachage : le score de Raboud est un plafond de portée, pas une prédiction de vote de liste."),
+            tags$li("Le CE 2026 est majoritaire avec panachage : le score de Raboud Sidorenko est un plafond de portée, pas une prédiction de vote de liste."),
             tags$li("Positionnement sur les votations ≠ vote de liste EàG."),
             tags$li("Analyse géographique : ne pas inférer de comportements individuels."))
         )
@@ -387,7 +387,7 @@ ui <- page_fluid(
         bloc_message(
           sprintf("De %d à %d sièges à portée", cles$s27, cles$srab),
           sprintf("À voix 2022, la répartition 2027 redonne %d sièges à EàG. ", cles$s27),
-          sprintf("Si la liste retrouve au GC 2027 la performance de Raboud au CE 2026, le modèle en donne %d, ",
+          sprintf("Si la liste retrouve au GC 2027 la performance de Raboud Sidorenko au CE 2026, le modèle en donne %d, ",
                   cles$srab),
           sprintf("avec des gains à %s. ", liste_fr(cles$gains)),
           "C'est un plafond, pas une prévision."),
@@ -408,14 +408,14 @@ ui <- page_fluid(
 
         bloc_message(
           if (comp_tot$eff_part > comp_tot$eff_perf)
-            "Raboud : un progrès réel, mais surtout de participation"
-          else "Raboud : un progrès d'abord de performance",
-          sprintf("De %s (liste GC 2022) à %s (Raboud CE 2026). ",
+            "Raboud Sidorenko : un progrès réel, mais surtout de participation"
+          else "Raboud Sidorenko : un progrès d'abord de performance",
+          sprintf("De %s (liste GC 2022) à %s (Raboud Sidorenko CE 2026). ",
                   fmt_pct(comp_tot$part22), fmt_pct(comp_tot$part26)),
           sprintf("Sur l'écart de voix, %s relèvent de la performance ; %s tiennent à la participation du CE ",
                   fmt_signe(comp_tot$eff_perf), fmt_signe(comp_tot$eff_part)),
           "et s'évaporent si le GC 2027 mobilise comme 2022. ",
-          sprintf("Dans les %d communes sans liste en 2022, Raboud fait %s : le potentiel y existe.",
+          sprintf("Dans les %d communes sans liste en 2022, Raboud Sidorenko fait %s : le potentiel y existe.",
                   cles$sans_liste_n, fmt_pct(cles$sans_liste_part))),
 
         bloc_message(
@@ -543,7 +543,7 @@ ui <- page_fluid(
         span("Écart de conversion — positionnement ACP vs vote EàG"),
         div(class = "d-flex gap-3 align-items-center",
           div(class = "d-flex align-items-center gap-1",
-            checkboxInput("ecart_raboud", "Panneau Raboud CE 2026", TRUE)
+            checkboxInput("ecart_raboud", "Panneau Raboud Sidorenko CE 2026", TRUE)
           ),
           div(class = "d-flex align-items-center gap-1",
             span(class = "small text-muted", "District :"),
@@ -565,7 +565,7 @@ ui <- page_fluid(
   card(
     card_header(
       div(class = "d-flex justify-content-between align-items-center flex-wrap gap-2",
-        span("Comparaison — liste EàG/gauche GC 2022 vs Raboud CE 2026"),
+        span("Comparaison — liste EàG/gauche GC 2022 vs Raboud Sidorenko CE 2026"),
         div(class = "d-flex gap-3 align-items-center flex-wrap",
           div(class = "d-flex align-items-center gap-1",
             span(class = "small text-muted", "District :"),
@@ -590,7 +590,7 @@ ui <- page_fluid(
       div(class = "small text-muted mb-2",
         "Les deux scrutins n'ont ni la même base ni le même mode. Trois lectures, dans l'ordre : ",
         strong("(1) en part"), " — chaque score sur ses propres bulletins, seule mesure de performance ; ",
-        strong("(2) en voix à participation 2022"), " — la part de Raboud appliquée au corps électoral du GC ; ",
+        strong("(2) en voix à participation 2022"), " — la part de Raboud Sidorenko appliquée au corps électoral du GC ; ",
         strong("(3) décomposition"), " de l'écart de voix brut en effet participation + effet performance."),
 
       layout_columns(
@@ -598,7 +598,7 @@ ui <- page_fluid(
         div(
           h6(class = "fw-bold small mb-1", "1. En part — la diagonale est la référence"),
           p(class = "small text-muted mb-1",
-            "Au-dessus de la diagonale, Raboud fait mieux que la liste 2022 ; en dessous, moins bien. ",
+            "Au-dessus de la diagonale, Raboud Sidorenko fait mieux que la liste 2022 ; en dessous, moins bien. ",
             "Les communes en orange n'avaient pas de liste : elles partent de 0 par construction, ",
             "leur position mesure un potentiel révélé, pas une progression."),
           plotlyOutput("p_cmp_scatter", height = "420px")
@@ -619,7 +619,7 @@ ui <- page_fluid(
           selectInput("cmp_tri", NULL,
             choices = c("Écart de part (pp)"                = "diff_part",
                         "Gain en voix à participation 2022" = "effet_performance",
-                        "Part Raboud 2026"                  = "part_raboud_2026"),
+                        "Part Raboud Sidorenko 2026"                  = "part_raboud_2026"),
             selected = "diff_part", width = "280px")
         ),
         plotlyOutput("p_cmp_communes", height = "520px")
@@ -749,7 +749,7 @@ server <- function(input, output, session) {
     if (!is.null(input$c_profil))
       df <- filter(df, profil %in% input$c_profil)
     # Le score marge fait remonter de très petites communes (35-60 électeurs)
-    # dont la part Raboud, sur si peu de bulletins, est surtout du bruit.
+    # dont la part Raboud Sidorenko, sur si peu de bulletins, est surtout du bruit.
     eff <- if (is.na(input$c_eff %||% NA)) 0 else input$c_eff
     filter(df, effectif >= eff)
   })
@@ -861,7 +861,7 @@ server <- function(input, output, session) {
 
   # Écart de conversion
   # Deux panneaux côte à côte plutôt qu'une superposition : les 300 points
-  # Raboud recouvraient les 124 points 2022 et la droite de régression.
+  # Raboud Sidorenko recouvraient les 124 points 2022 et la droite de régression.
   output$p_ecart <- renderPlotly({
     tous <- ecart_filt() |> filter(!is.na(dim1))
     # Le nuage 2022 ne porte que sur les arrondissements où EàG avait une
@@ -901,7 +901,7 @@ server <- function(input, output, session) {
                        "EàG 2022 : ", fmt_pct(part_eag_2022), "<br>",
                        "Résidu : ", sprintf("%+.1f", ecart * 100), " pt (",
                        fmt_signe(ecart * effectif), " voix)<br>",
-                       "Raboud CE 2026 : ", fmt_pct(part_raboud_2026), "<br>",
+                       "Raboud Sidorenko CE 2026 : ", fmt_pct(part_raboud_2026), "<br>",
                        "Effectif : ", fmt_num(effectif), "<br>",
                        "Profil : ", profil))
 
@@ -912,7 +912,7 @@ server <- function(input, output, session) {
                   text = ~tooltip, hovertemplate = "%{text}<extra></extra>") |>
       ajouter_droite(droite_reg(df, "part_eag_2022"), "Régression 2022", "#333333")
 
-    # Raboud était candidate dans tout le canton : les 300 communes comptent,
+    # Raboud Sidorenko était candidate dans tout le canton : les 300 communes comptent,
     # y compris celles où elle n'a fait aucune voix (vrais zéros).
     dr <- tous |> filter(!is.na(part_raboud_2026))
     avec_raboud <- isTRUE(input$ecart_raboud) && nrow(dr) >= 3
@@ -921,16 +921,16 @@ server <- function(input, output, session) {
         taille  = taille_point(effectif),
         tooltip = paste0("<b>", Communes, "</b> (", district_electoral, ")<br>",
                          "Positionnement : ", round(dim1, 2), "<br>",
-                         "Raboud CE 2026 : ", fmt_pct(part_raboud_2026), "<br>",
+                         "Raboud Sidorenko CE 2026 : ", fmt_pct(part_raboud_2026), "<br>",
                          "EàG 2022 : ", fmt_pct(part_eag_2022),
                          ifelse(liste_eag_2022, "", " <i>(pas de liste)</i>"), "<br>",
                          "Effectif : ", fmt_num(effectif)))
       p2 <- plot_ly(dr, x = ~dim1, y = ~part_raboud_2026, type = "scatter", mode = "markers",
-                    name = "Raboud CE 2026", showlegend = FALSE,
+                    name = "Raboud Sidorenko CE 2026", showlegend = FALSE,
                     marker = list(color = "#8c6bb1", size = ~taille, opacity = 0.45,
                                   line = list(width = 1, color = "white")),
                     text = ~tooltip, hovertemplate = "%{text}<extra></extra>") |>
-        ajouter_droite(droite_reg(dr, "part_raboud_2026"), "Régression Raboud 2026", "#54278f")
+        ajouter_droite(droite_reg(dr, "part_raboud_2026"), "Régression Raboud Sidorenko 2026", "#54278f")
     }
 
     # Axe vertical ancré à 0 : les droites prolongées sous 0 % ne veulent rien
@@ -972,7 +972,7 @@ server <- function(input, output, session) {
       font = list(size = 12, color = "#333"))
     titres <- list(titre_panneau(0, sprintf("GC 2022 — liste EàG (%d communes)", nrow(df))))
     if (avec_raboud)
-      titres <- c(titres, list(titre_panneau(0.53, sprintf("Raboud CE 2026 (%d communes)", nrow(dr)))))
+      titres <- c(titres, list(titre_panneau(0.53, sprintf("Raboud Sidorenko CE 2026 (%d communes)", nrow(dr)))))
 
     fig <- if (avec_raboud)
       subplot(p1, p2, nrows = 1, shareY = TRUE, titleX = TRUE, margin = 0.03)
@@ -1037,7 +1037,7 @@ server <- function(input, output, session) {
       layout(
         xaxis  = list(title = "Part liste EàG/gauche — GC 2022",
                       tickformat = ".0%", range = c(0, lim)),
-        yaxis  = list(title = "Part Raboud — CE 2026",
+        yaxis  = list(title = "Part Raboud Sidorenko — CE 2026",
                       tickformat = ".0%", range = c(0, lim)),
         legend = list(orientation = "h", y = -0.15, title = list(text = ""))
       )
@@ -1096,7 +1096,7 @@ server <- function(input, output, session) {
     lab <- switch(tri,
       diff_part         = "Écart de part 2022 → 2026 (points)",
       effet_performance = "Voix gagnées/perdues à participation 2022",
-      part_raboud_2026  = "Part Raboud CE 2026")
+      part_raboud_2026  = "Part Raboud Sidorenko CE 2026")
 
     plot_ly(df, x = ~val, y = ~Communes, type = "bar", orientation = "h",
             color = ~statut_comparaison, colors = STATUT_COMPARAISON_PAL,
@@ -1194,8 +1194,8 @@ server <- function(input, output, session) {
                    names_to = "annee", values_to = "sieges") |>
       mutate(
         annee = recode(annee, sieges_eag_22 = "2022", sieges_eag_27 = "2027 (est.)",
-                       sieges_eag_raboud = "Scénario Raboud CE 2026"),
-        annee = factor(annee, levels = c("2022", "2027 (est.)", "Scénario Raboud CE 2026")),
+                       sieges_eag_raboud = "Scénario Raboud Sidorenko CE 2026"),
+        annee = factor(annee, levels = c("2022", "2027 (est.)", "Scénario Raboud Sidorenko CE 2026")),
         district_electoral = fct_reorder(district_electoral, sieges, max)
       )
     # `barmode` est un attribut de layout, pas de trace : le passer à plot_ly()
@@ -1203,7 +1203,7 @@ server <- function(input, output, session) {
     plot_ly(df_long, x = ~sieges, y = ~district_electoral, type = "bar",
             orientation = "h", color = ~annee,
             colors = c("2022" = "#888", "2027 (est.)" = "#c0392b",
-                       "Scénario Raboud CE 2026" = "#8c6bb1")) |>
+                       "Scénario Raboud Sidorenko CE 2026" = "#8c6bb1")) |>
       layout(barmode = "group",
              xaxis = list(title = "Sièges EàG"),
              yaxis = list(title = ""),
@@ -1233,11 +1233,11 @@ server <- function(input, output, session) {
              "Score marge" = score_marge_district, "Marge moy." = marge_district,
              Votants = total_valables,
              "Voix EàG" = votes_eag, "Part EàG" = part_eag_dist,
-             "Part Raboud 26" = part_raboud_dist,
+             "Part Raboud Sidorenko 26" = part_raboud_dist,
              "Part gauche" = part_gauche_dist,
              "Sièges 22" = sieges_2022, "Sièges 27" = sieges_2027,
              "EàG 22" = sieges_eag_22, "EàG 27 (est.)" = sieges_eag_27,
-             "EàG scén. Raboud" = sieges_eag_raboud,
+             "EàG scén. Raboud Sidorenko" = sieges_eag_raboud,
              "Voix quorum 5 %" = voix_quorum, "Voix pour 1 siège" = voix_siege,
              "Manquant (%)" = part_manquante,
              Statut = statut_district) |>
@@ -1270,7 +1270,7 @@ server <- function(input, output, session) {
                             "Part du potentiel du district : ", fmt_pct(part_score_district), "<br>",
                             "EàG 2022 : ", fmt_pct(part_eag_2022),
                             ifelse(liste_eag_2022, "", " <i>(pas de liste)</i>"), "<br>",
-                            "Raboud CE 2026 : ", ifelse(raboud_voix > 0, fmt_pct(part_raboud_2026), "0"), "<br>",
+                            "Raboud Sidorenko CE 2026 : ", ifelse(raboud_voix > 0, fmt_pct(part_raboud_2026), "0"), "<br>",
                             "Signal retenu : ", source_marge, "<br>",
                             "Type d'électorat : ", type_electorat, "<br>",
                             "Effectif : ", fmt_num(effectif)),
@@ -1307,7 +1307,7 @@ server <- function(input, output, session) {
              part_score_district, part_eag_cc, source_marge) |>
       rename(Commune = Communes, District = district_electoral, Profil = profil,
              "Électorat" = type_electorat,
-             "EàG 22 (%)" = part_eag_2022, "Raboud 26 (%)" = part_raboud_2026,
+             "EàG 22 (%)" = part_eag_2022, "Raboud Sidorenko 26 (%)" = part_raboud_2026,
              "Tend. (pp)" = tendance_raboud, "Gauche 22 (%)" = part_gauche_2022,
              "PS+V (%)" = part_ps_verts, "Pos." = dim1,
              "Résidu (pp)" = ecart, "Part. (%)" = particip_moy,
@@ -1369,7 +1369,7 @@ server <- function(input, output, session) {
       "Part du potentiel du district : ", fmt_pct(df$part_score_district), "<br>",
       "EàG 2022 : ", fmt_pct(df$part_eag_2022),
       ifelse(df$liste_eag_2022, "", " <i>(pas de liste déposée)</i>"), "<br>",
-      "Raboud CE 2026 : ", fmt_pct(df$part_raboud_2026), "<br>",
+      "Raboud Sidorenko CE 2026 : ", fmt_pct(df$part_raboud_2026), "<br>",
       "Effectif : ", fmt_num(df$effectif)
     )
 
@@ -1420,7 +1420,7 @@ server <- function(input, output, session) {
       " (", df$n_communes, " communes)<br>",
       "Sièges 2027 : ", df$sieges_2027,
       " — EàG : ", df$sieges_eag_22, " en 2022, ", df$sieges_eag_27, " estimé 2027, ",
-      df$sieges_eag_raboud, " scénario Raboud<br>",
+      df$sieges_eag_raboud, " scénario Raboud Sidorenko<br>",
       "Voix pour un siège : ", fmt_num(df$voix_siege),
       " (", fmt_pct(df$part_manquante), " du district)<br>",
       "Voix pour le quorum 5 % : ", fmt_num(df$voix_quorum), "<br>",
@@ -1428,7 +1428,7 @@ server <- function(input, output, session) {
       "Score marge : ", round(df$score_marge_district, 2),
       " (marge moyenne ", fmt_pct(df$marge_district), ")<br>",
       "Part EàG GC 2022 : ", fmt_pct(df$part_eag_dist), "<br>",
-      "Part Raboud CE 2026 : ", fmt_pct(df$part_raboud_dist), "<br>",
+      "Part Raboud Sidorenko CE 2026 : ", fmt_pct(df$part_raboud_dist), "<br>",
       "Part gauche 2022 : ", fmt_pct(df$part_gauche_dist)
     )
 
@@ -1544,7 +1544,7 @@ server <- function(input, output, session) {
         tags$ul(class = "mb-2",
           tags$li(strong("Marge de progression :"),
             " le plus fort de deux signaux — (a) la commune vote plus à gauche que ce qu'EàG y a obtenu en 2022 ",
-            "(résidu négatif dans « Écart de conversion ») ; (b) Raboud, au Conseil d'État 2026, y a rassemblé ",
+            "(résidu négatif dans « Écart de conversion ») ; (b) Raboud Sidorenko, au Conseil d'État 2026, y a rassemblé ",
             "nettement plus de voix que la liste EàG en 2022. ",
             "Le second signal capte les communes où EàG a déjà démontré une portée que son score de liste ne reflète pas."),
           tags$li(strong("Levier siège :"),
@@ -1644,7 +1644,7 @@ server <- function(input, output, session) {
               tags$td("Faire voter des gens déjà acquis: tractage ciblé, rappels de vote")),
             tags$tr(style = "background:#fde0d0",
               tags$td(strong("Persuasion")),
-              tags$td("Raboud y a fait nettement mieux que la médiane, ou EàG y sous-performe son potentiel"),
+              tags$td("Raboud Sidorenko y a fait nettement mieux que la médiane, ou EàG y sous-performe son potentiel"),
               tags$td("Convaincre des électeurs proches: porte-à-porte, événements publics, médias locaux")),
             tags$tr(style = "background:#ecdcea",
               tags$td(strong("Report de gauche")),
@@ -1656,14 +1656,14 @@ server <- function(input, output, session) {
               tags$td("Construire une présence : militant·es référent·es, visibilité locale, et d'abord déposer une liste")))),
         p(class = "text-muted small mb-0",
           "Les seuils (médianes de dim1, de participation et du réservoir PS/Verts) portent sur les 300 communes. ",
-          "Le seuil Raboud est la médiane des seules communes où elle a récolté des voix. ",
+          "Le seuil Raboud Sidorenko est la médiane des seules communes où elle a récolté des voix. ",
           "Aucune commune n'est laissée sans profil.")),
 
       # Comparaison 2022 / 2026
       div(class = "border rounded p-3",
         h5(class = "fw-bold mb-3", "Comparer le GC 2022 et le CE 2026 sans se tromper"),
         p("Mettre côte à côte ", strong("6 179"), " voix de liste en 2022 et ", strong("17 970"),
-          " voix Raboud en 2026 donne un « ×2,9 » qui ne veut rien dire : les deux scrutins ",
+          " voix Raboud Sidorenko en 2026 donne un « ×2,9 » qui ne veut rien dire : les deux scrutins ",
           "n'ont ni la même base, ni le même mode, ni la même géographie de candidature."),
         tags$ol(class = "mb-2",
           tags$li(strong("En part. "),
@@ -1685,11 +1685,11 @@ server <- function(input, output, session) {
             tags$tr(
               tags$td(tags$span(class = "badge", style = "background:#c0392b", "performance")),
               tags$td("+4 508"),
-              tags$td("Le vrai gain politique : à participation égale, Raboud attire ",
+              tags$td("Le vrai gain politique : à participation égale, Raboud Sidorenko attire ",
                       "plus d'électeurs que la liste de 2022.")))),
         p(class = "text-muted small mb-0",
           strong("Les 176 communes sans liste en 2022 ne « progressent » pas. "),
-          "Elles partent de 0 par construction ; leur score Raboud mesure un potentiel révélé. ",
+          "Elles partent de 0 par construction ; leur score Raboud Sidorenko mesure un potentiel révélé. ",
           "Elles sont isolées en orange, et le filtre « communes comparables » les retire du classement. ",
           "Attention aussi aux arrondissements où la liste 2022 existait sur le papier mais ne pesait ",
           "presque rien (Lavaux-Oron : 0,28 %) : l'écart y est mécaniquement spectaculaire.")),
@@ -1701,9 +1701,9 @@ server <- function(input, output, session) {
           tags$li(strong("Absence de liste ≠ échec. "),
             "EàG n'avait de liste au GC 2022 que dans 7 arrondissements sur 13 : Aigle, Lausanne-Ville, Lavaux-Oron, ",
             "Ouest lausannois, Riviera, Romanel, Yverdon. Dans les 176 communes des six autres, une part de 0 % ne ",
-            "mesure rien ; le résidu de conversion n'y est pas défini et la marge repose sur Raboud et le réservoir PS/Verts."),
+            "mesure rien ; le résidu de conversion n'y est pas défini et la marge repose sur Raboud Sidorenko et le réservoir PS/Verts."),
           tags$li(strong("CE 2026 = plafond, pas prédiction. "),
-            "L'élection au Conseil d'État est majoritaire avec panachage : le score de Raboud inclut des voix PS/Verts ",
+            "L'élection au Conseil d'État est majoritaire avec panachage : le score de Raboud Sidorenko inclut des voix PS/Verts ",
             "qui ne se reporteront pas mécaniquement sur une liste EàG au GC."),
           tags$li(strong("Bases de bulletins distinctes. "),
             "Le CE 2026 a compté environ 1,6× plus de bulletins que le GC 2022. Chaque part est donc calculée sur ",
